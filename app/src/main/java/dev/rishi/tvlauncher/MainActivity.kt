@@ -30,6 +30,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -41,6 +42,7 @@ class MainActivity : Activity() {
 
     private lateinit var scroll: ScrollView
     private lateinit var clock: TextView
+    private lateinit var date: TextView
     private lateinit var favoritesRow: LinearLayout
     private lateinit var favoritesLabel: TextView
     private lateinit var appsLabel: TextView
@@ -84,6 +86,7 @@ class MainActivity : Activity() {
             addAction(Intent.ACTION_TIME_TICK)
             addAction(Intent.ACTION_TIME_CHANGED)
             addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            addAction(Intent.ACTION_DATE_CHANGED)
         })
     }
 
@@ -207,10 +210,14 @@ class MainActivity : Activity() {
 
     private fun buildLayout(): View {
         clock = text(sizeSp = 22f, color = R.color.text_primary)
+        date = text(sizeSp = 16f, color = R.color.text_secondary).apply {
+            setPadding(0, 0, dp(14), 0)
+        }
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))
+            addView(date)
             addView(clock)
         }
 
@@ -458,7 +465,11 @@ class MainActivity : Activity() {
     }
 
     private fun updateClock() {
-        clock.text = DateFormat.getTimeFormat(this).format(Date())
+        val now = Date()
+        clock.text = DateFormat.getTimeFormat(this).format(now)
+        // Locale-aware short form, e.g. "Sat, 18 Oct" or "Sat, Oct 18".
+        val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), DATE_SKELETON)
+        date.text = DateFormat.format(pattern, now)
     }
 
     /** Fits as many tiles as the screen allows instead of assuming a density. */
@@ -505,6 +516,7 @@ class MainActivity : Activity() {
     private companion object {
         const val FOCUSED_SCALE = 1.08f
         const val FOCUS_ANIM_MS = 120L
+        const val DATE_SKELETON = "EEEdMMM"
 
         // Prefixed so they can never collide with a package name.
         const val TILE_INPUTS = "system:inputs"

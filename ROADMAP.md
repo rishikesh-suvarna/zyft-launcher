@@ -14,7 +14,8 @@ Guiding rule: every feature must keep the launcher small, permission-free and fa
 
 - [x] **Number keys:** keys 1-9 on the remote open favorites 1-9 directly
 - [x] **Move mode:** reorder favorites by pressing OK, then left/right, then OK, instead of one step per menu
-- [ ] **Status header:** date next to the clock, plus a no-network warning
+- [x] **Status header:** date next to the clock
+- [ ] **No-network warning** in the header (needs the install-time `ACCESS_NETWORK_STATE` permission, so it is opt-in by decision)
 
 ## Phase 3: Nice to have (opt-in)
 

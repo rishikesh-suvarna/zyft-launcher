@@ -50,6 +50,20 @@ You need a computer with [`adb`](https://developer.android.com/tools/releases/pl
 
 Download the latest `lite-launcher-*.apk` from [Releases](../../releases), **or** build it yourself (see [Development](#development)).
 
+<details>
+<summary>Verify the download (optional)</summary>
+
+Every release is signed with the same key. Check it with `apksigner` from the Android build tools:
+
+```sh
+apksigner verify --print-certs lite-launcher-1.0.0.apk | grep SHA-256
+# Signer #1 certificate SHA-256 digest: 66a521d615754c29f4dbee76c0c770a6aa4b37bc740236e5bd8503307d550eea
+```
+
+If the digest differs, don't install it. A build you made yourself is signed with your own debug key, so it can't upgrade a release install (uninstall first).
+
+</details>
+
 ### 3. Install and make it the home screen
 
 ```sh
@@ -144,6 +158,8 @@ To drive the emulator from your keyboard (arrows = D-pad, Enter = OK, Esc = Back
 Design rules: no dependencies beyond the Kotlin stdlib, no internet permission, no new permissions without a strong reason, keep the logic in pure functions with JVM unit tests, and measure cold start before adding anything heavy.
 
 Releases: pushing a `v*` tag builds a signed APK and publishes it to GitHub Releases. Set the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` first; the workflow refuses to publish debug-signed builds.
+
+The release key must never change: Android only installs an update signed with the same key as the installed app. GitHub secrets can't be read back, so keep an offline backup of the keystore file and its password. If you fork this project, generate your own key (PKCS12, RSA 4096, 25+ years validity) and publish its fingerprint here.
 
 ## Contributing
 

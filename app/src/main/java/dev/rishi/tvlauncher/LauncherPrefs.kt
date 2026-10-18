@@ -13,6 +13,14 @@ class LauncherPrefs(context: Context) {
                 .putBoolean(KEY_SEEDED, true)
                 .apply()
         }
+        // Versioned so existing installs get the list once, and a later "Show hidden apps"
+        // isn't undone on the next start.
+        if (!prefs.getBoolean(KEY_DEFAULT_HIDDEN_APPLIED, false)) {
+            prefs.edit()
+                .putStringSet(KEY_HIDDEN, hidden + DEFAULT_HIDDEN_PACKAGES)
+                .putBoolean(KEY_DEFAULT_HIDDEN_APPLIED, true)
+                .apply()
+        }
     }
 
     val favorites: List<String>
@@ -74,6 +82,7 @@ class LauncherPrefs(context: Context) {
         const val KEY_FAVORITES = "favorites"
         const val KEY_HIDDEN = "hidden"
         const val KEY_SEEDED = "seeded"
+        const val KEY_DEFAULT_HIDDEN_APPLIED = "default_hidden_v1"
         const val KEY_SORT = "sort"
         const val KEY_BACKDROP = "backdrop"
         const val KEY_LAUNCHES_PREFIX = "launches."

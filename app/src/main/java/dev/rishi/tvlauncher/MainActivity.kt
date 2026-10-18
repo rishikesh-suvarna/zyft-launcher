@@ -26,7 +26,6 @@ import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -48,7 +47,7 @@ class MainActivity : Activity() {
     private lateinit var date: TextView
     private lateinit var networkStatus: TextView
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
-    private lateinit var favoritesRow: LinearLayout
+    private lateinit var favoritesGrid: LinearLayout
     private lateinit var favoritesLabel: TextView
     private lateinit var appsLabel: TextView
     private lateinit var appsGrid: LinearLayout
@@ -194,24 +193,14 @@ class MainActivity : Activity() {
         val arranged = arrange(apps, prefs.favorites, hidden, { it.packageName }, order)
         appsLabel.text = "Apps  ·  ${sortMode.title}"
 
-        favoritesRow.removeAllViews()
         visibleFavorites = arranged.favorites
-        arranged.favorites.forEachIndexed { index, app ->
-            val number = (index + 1).takeIf { it <= MAX_NUMBERED_FAVORITES }
-            favoritesRow.addView(appTile(app, number))
-        }
+        fillGrid(favoritesGrid, arranged.favorites.mapIndexed { index, app ->
+            appTile(app, number = (index + 1).takeIf { it <= MAX_NUMBERED_FAVORITES })
+        })
         favoritesLabel.visibility = if (arranged.favorites.isEmpty()) View.GONE else View.VISIBLE
         favoritesLabel.text = if (movingKey != null) "Favorites  ·  Left / right to move, OK to finish" else "Favorites"
 
-        val gridTiles = arranged.others.map(::appTile) + systemTiles()
-        appsGrid.removeAllViews()
-        gridTiles.chunked(gridColumns()).forEach { rowTiles ->
-            appsGrid.addView(LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                clipChildren = false
-                rowTiles.forEach(::addView)
-            })
-        }
+        fillGrid(appsGrid, arranged.others.map(::appTile) + systemTiles())
 
         val restored = focusedKey?.let { key ->
             allTiles().firstOrNull { tileKey(it) == key }
@@ -242,15 +231,10 @@ class MainActivity : Activity() {
         }
 
         favoritesLabel = sectionLabel("Favorites")
-        favoritesRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+        // Wraps like the app grid instead of scrolling sideways, so no tile is ever cut off.
+        favoritesGrid = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             clipChildren = false
-        }
-        val favoritesScroller = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            clipToPadding = false
-            clipChildren = false
-            addView(favoritesRow)
         }
 
         appsGrid = LinearLayout(this).apply {
@@ -268,7 +252,7 @@ class MainActivity : Activity() {
             setPadding(h, v, h, v)
             addView(header)
             addView(favoritesLabel)
-            addView(favoritesScroller)
+            addView(favoritesGrid)
             appsLabel = sectionLabel("Apps")
             addView(appsLabel)
             addView(appsGrid)
@@ -528,13 +512,23 @@ class MainActivity : Activity() {
         allTiles().firstOrNull()?.requestFocus()
     }
 
-    private fun allTiles(): List<View> {
-        val gridTiles = (0 until appsGrid.childCount).flatMap { r ->
-            val row = appsGrid.getChildAt(r) as LinearLayout
-            (0 until row.childCount).map(row::getChildAt)
+    private fun fillGrid(grid: LinearLayout, tiles: List<View>) {
+        grid.removeAllViews()
+        tiles.chunked(gridColumns()).forEach { rowTiles ->
+            grid.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                clipChildren = false
+                rowTiles.forEach(::addView)
+            })
         }
-        return (0 until favoritesRow.childCount).map(favoritesRow::getChildAt) + gridTiles
     }
+
+    private fun tilesIn(grid: LinearLayout): List<View> = (0 until grid.childCount).flatMap { r ->
+        val row = grid.getChildAt(r) as LinearLayout
+        (0 until row.childCount).map(row::getChildAt)
+    }
+
+    private fun allTiles(): List<View> = tilesIn(favoritesGrid) + tilesIn(appsGrid)
 
     private fun registerSystemReceiver(receiver: BroadcastReceiver, filter: IntentFilter) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

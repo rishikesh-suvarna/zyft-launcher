@@ -47,6 +47,7 @@ class MainActivity : Activity() {
     private lateinit var appsGrid: LinearLayout
 
     private var apps: List<AppEntry> = emptyList()
+    private var visibleFavorites: List<AppEntry> = emptyList()
     /** Bumped on every load so a slow, stale load can't overwrite a newer one. */
     private var loadGeneration = 0
 
@@ -111,6 +112,11 @@ class MainActivity : Activity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
         // A home screen has nowhere to go back to.
         KeyEvent.KEYCODE_BACK -> true
+        in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9,
+        in KeyEvent.KEYCODE_NUMPAD_1..KeyEvent.KEYCODE_NUMPAD_9 -> {
+            favoriteSlotForKey(keyCode)?.let(visibleFavorites::getOrNull)?.let(::launch)
+            true
+        }
         KeyEvent.KEYCODE_MENU -> {
             (currentFocus?.tag as? AppEntry)?.let(::showAppMenu)
             true
@@ -142,7 +148,11 @@ class MainActivity : Activity() {
         appsLabel.text = "Apps  ·  ${sortMode.title}"
 
         favoritesRow.removeAllViews()
-        arranged.favorites.forEach { favoritesRow.addView(appTile(it)) }
+        visibleFavorites = arranged.favorites
+        arranged.favorites.forEachIndexed { index, app ->
+            val number = (index + 1).takeIf { it <= MAX_NUMBERED_FAVORITES }
+            favoritesRow.addView(appTile(app, number))
+        }
         favoritesLabel.visibility = if (arranged.favorites.isEmpty()) View.GONE else View.VISIBLE
 
         val gridTiles = arranged.others.map(::appTile) + systemTiles()
@@ -216,9 +226,12 @@ class MainActivity : Activity() {
         return scroll
     }
 
-    private fun appTile(app: AppEntry): View {
+    /** [number] badges a favorite with its remote shortcut key. */
+    private fun appTile(app: AppEntry, number: Int? = null): View {
         val content = app.banner?.let(::bannerView) ?: iconWithLabel(app.icon, app.label)
-        return tile(content, tag = app, onClick = { launch(app) }, onLongClick = { showAppMenu(app) })
+        val tile = tile(content, tag = app, onClick = { launch(app) }, onLongClick = { showAppMenu(app) })
+        number?.let { (tile as FrameLayout).addView(numberBadge(it)) }
+        return tile
     }
 
     private fun systemTiles(): List<View> = listOf(
@@ -263,6 +276,15 @@ class MainActivity : Activity() {
             val scale = if (hasFocus) FOCUSED_SCALE else 1f
             view.animate().scaleX(scale).scaleY(scale).setDuration(FOCUS_ANIM_MS).start()
             view.elevation = if (hasFocus) dp(8).toFloat() else 0f
+        }
+    }
+
+    private fun numberBadge(number: Int) = text(sizeSp = 11f, color = R.color.text_primary).apply {
+        text = number.toString()
+        gravity = Gravity.CENTER
+        setBackgroundResource(R.drawable.number_badge)
+        layoutParams = FrameLayout.LayoutParams(dp(20), dp(20), Gravity.TOP or Gravity.START).apply {
+            setMargins(dp(4), dp(4), 0, 0)
         }
     }
 

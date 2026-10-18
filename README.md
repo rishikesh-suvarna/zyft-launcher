@@ -13,6 +13,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 
 ## Features
 
+- Number keys 1-9 on the remote open your first nine favorites
 - Favorites row (Netflix, Prime Video, YouTube, Apple TV and JioHotstar are pinned by default when installed)
 - All apps grid, sorted A-Z, by most used or by recently used
 - Pin, reorder, hide apps, or jump to their App info
@@ -98,6 +99,7 @@ Re-enables exactly what `install` and `debloat` disabled, resets animation speed
 | Remote | Action |
 | --- | --- |
 | D-pad + OK | Move and open |
+| 1 - 9 | Open favorite 1 - 9 (shown as a badge on each tile) |
 | Long-press OK, or Menu | App options: favorite, move, hide, app info |
 | Home | Back to the top of the launcher |
 | Back | Does nothing on the home screen (by design) |

@@ -1,16 +1,27 @@
 #!/usr/bin/env bash
-# Disables (reversibly) the packages listed in bloat.txt that exist on this TV.
+# Disables (reversibly) the packages from profiles/android-tv.txt plus the TV brand's profile.
 source "$(dirname "$0")/common.sh"
 
 connect_tv "${1:-}"
 
-targets=()
-while read -r pkg _; do
-  [[ -z "$pkg" || "$pkg" == \#* ]] && continue
-  is_enabled "$pkg" && targets+=("$pkg")
-done < "$(dirname "$0")/bloat.txt"
+profiles=("$PROFILES_DIR/android-tv.txt")
+vendor="$(detect_vendor)"
+if [[ -f "$PROFILES_DIR/$vendor.txt" ]]; then
+  profiles+=("$PROFILES_DIR/$vendor.txt")
+else
+  echo "No profile for '$vendor' yet; using the generic Android TV list only (see CONTRIBUTING.md)."
+fi
 
-(( ${#targets[@]} )) || { echo "Nothing from bloat.txt is installed and enabled."; exit 0; }
+targets=()
+for profile in "${profiles[@]}"; do
+  while read -r pkg _; do
+    [[ -z "$pkg" || "$pkg" == \#* ]] && continue
+    is_enabled "$pkg" && targets+=("$pkg")
+  done < "$profile"
+done
+
+(( ${#targets[@]} )) || { echo "Nothing from ${profiles[*]##*/} is installed and enabled."; exit 0; }
+echo "Profiles: ${profiles[*]##*/}"
 printf '  %s\n' "${targets[@]}"
 confirm "Disable these ${#targets[@]} packages?" || exit 0
 

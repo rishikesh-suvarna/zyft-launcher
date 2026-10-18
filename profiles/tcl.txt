@@ -1,0 +1,21 @@
+# TCL Android TV / Google TV. Verified on a TCL 32ES568 (Android TV 9, Realtek RTD284x).
+# Only packages that are clearly not needed for watching TV or streaming.
+#
+# NEVER disable these (inputs, remote control, settings or first-boot would break):
+#   com.tcl.tv  com.tcl.tvinput  com.tcl.tcl_bt_rcu_service  com.tcl.autopair
+#   com.tcl.keycustomfunctionservice  com.tcl.settings  com.tcl.initsetup
+#   com.tcl.framework.custom  com.tcl.systemuioverlay  com.tcl.providers.config
+#   com.tcl.inputmethod.international  com.tcl.useragreement  com.tcl.factory.view
+
+com.tcl.waterfall.overseas      TCL home content feed and promos
+com.tcl.bi                      Usage analytics / telemetry
+com.tcl.esticker                In-store demo sticker overlay
+com.tcl.appmarket2              TCL app store (use Play Store instead)
+com.tcl.usercenter              TCL account
+com.tcl.copydatatotv            Phone-to-TV data transfer
+
+# Optional: uncomment if you never play media from a USB stick.
+# com.tcl.ui_mediaCenter        USB media center
+# com.tcl.imageplayer           USB photo viewer
+# com.tcl.audioplayer           USB music player
+# com.tcl.videoplayer           USB video player

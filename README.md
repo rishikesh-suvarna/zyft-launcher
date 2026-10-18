@@ -1,0 +1,151 @@
+# Lite Launcher
+
+A tiny, fast, ad-free home screen for Android TV and Google TV.
+
+Stock TV launchers are heavy: recommendation feeds, promoted rows, background services and ads, all running on hardware with 1 to 2 GB of RAM. Lite Launcher replaces it with a plain grid of the apps you actually use.
+
+![Lite Launcher home screen](docs/screenshot.png)
+
+- **Small and fast:** about 80 KB, no libraries, opens in roughly 100 ms.
+- **No ads, no feeds, no tracking:** the app requests **zero permissions**, not even internet access.
+- **Built for the remote:** D-pad navigation, long-press menus, nothing that needs a pointer.
+- **Fully reversible:** one command puts your TV back exactly as it was.
+
+## Features
+
+- Favorites row (Netflix, Prime Video, YouTube, Apple TV and JioHotstar are pinned by default when installed)
+- All apps grid, sorted A-Z, by most used or by recently used
+- Pin, reorder, hide apps, or jump to their App info
+- Inputs tile for HDMI / AV sources
+- Gradient backgrounds (no wallpaper images, so no memory cost)
+- Clock
+- Optional debloat: disables the stock launcher's recommendation services and vendor bloat, per TV brand
+
+See [ROADMAP.md](ROADMAP.md) for what's coming next.
+
+## Compatibility
+
+| Device | Status |
+| --- | --- |
+| TCL 32ES568 (Android TV 9) | Tested, daily use |
+| Google TV emulator (Android 12) | Tested |
+| Other Android TV / Google TV, Android 7.0+ | Should work; please report |
+| Amazon Fire TV | Not supported: Fire OS doesn't allow replacing the home screen without root |
+| Roku, webOS, Tizen, VIDAA | Not Android, not supported |
+
+If you try it on another TV, please open an issue with the output of `make scan` so we can add a profile for your brand.
+
+## Install
+
+You need a computer with [`adb`](https://developer.android.com/tools/releases/platform-tools) on the same network as the TV. The helper scripts are bash (macOS, Linux, or WSL / Git Bash on Windows).
+
+### 1. Enable developer mode on the TV
+
+1. **Settings > System > About** (or **Settings > Device Preferences > About**), then click **Build** 7 times.
+2. **Settings > System > Developer options**, turn on **USB debugging**. On Android TV this also allows network debugging on port 5555.
+3. Note the TV's IP address from **Settings > Network & Internet**.
+
+### 2. Get the APK
+
+Download the latest `lite-launcher-*.apk` from [Releases](../../releases), **or** build it yourself (see [Development](#development)).
+
+### 3. Install and make it the home screen
+
+```sh
+git clone <this repo> && cd tv-launcher
+make install TV=192.168.1.50 APK=~/Downloads/lite-launcher-1.0.0.apk
+```
+
+The first time, the TV shows **"Allow USB debugging?"**. Tick *Always allow* and press OK. The script installs the app, asks before disabling the stock launcher, and opens the new home screen. Press **Home** on the remote to check.
+
+<details>
+<summary>Doing it by hand, without the scripts</summary>
+
+```sh
+adb connect 192.168.1.50:5555
+adb install -r lite-launcher.apk
+# Find the stock home app(s):
+adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+# Disable it, e.g. Android TV / Google TV:
+adb shell pm disable-user --user 0 com.google.android.tvlauncher
+adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
+# Undo later with: adb shell pm enable <package>
+```
+
+Android TV has no "choose default home app" screen, which is why the stock launcher has to be disabled rather than just switched away from.
+
+</details>
+
+### 4. Optional: remove bloat
+
+```sh
+make scan TV=192.168.1.50      # read-only: shows device info, home apps, vendor packages, RAM use
+make debloat TV=192.168.1.50   # disables the packages in your brand's profile, after asking
+```
+
+Debloat uses [`profiles/android-tv.txt`](profiles/android-tv.txt) plus `profiles/<brand>.txt` when one exists for your TV (detected automatically). Packages are **disabled, never uninstalled**, and every change is logged.
+
+### Undo everything
+
+```sh
+make restore TV=192.168.1.50
+```
+
+Re-enables exactly what `install` and `debloat` disabled, resets animation speed, and offers to uninstall Lite Launcher. The log lives in `.tv-state/<tv-ip>.disabled`, so run restore from the same machine and keep the TV on the same IP (or rename the file).
+
+## Using it
+
+| Remote | Action |
+| --- | --- |
+| D-pad + OK | Move and open |
+| Long-press OK, or Menu | App options: favorite, move, hide, app info |
+| Home | Back to the top of the launcher |
+| Back | Does nothing on the home screen (by design) |
+| **Customize** tile | Sort order, background, show hidden apps |
+| **Inputs** tile | Switch to HDMI / AV |
+
+## Troubleshooting
+
+- **Home still opens the old launcher:** some brands ship a second home app. Run `make scan`, look under "Home apps", and disable the extra one (or open an issue).
+- **Can't connect:** TV and computer must be on the same network, and USB debugging must be on. Some TVs only allow adb over a USB cable or via *Wireless debugging* pairing.
+- **A system update brought the old launcher back:** updates can re-enable packages. Run `make install` again.
+- **Something broke after debloat:** `make restore` re-enables everything. Then please open an issue so we can fix the profile.
+
+## Development
+
+Requirements: JDK 17 and the Android SDK (platform 36). No Android Studio needed.
+
+```sh
+make build                  # release APK in app/build/outputs/apk/release/
+make test                   # unit tests
+make check                  # everything CI runs: shellcheck, tests, lint, build
+make ci-local               # run the real GitHub Actions job in Docker via act (slow on Apple Silicon)
+make emulator               # boot an Android TV AVD named "tcl_tv"
+make install TV=emulator-5554
+```
+
+```
+app/src/main/java/.../
+  MainActivity.kt      Home screen UI, focus handling, dialogs
+  AppRepository.kt     Finds launchable apps (TV banners preferred)
+  AppArranger.kt       Pure favorites / hidden / ordering logic
+  Sorting.kt           Sort modes
+  LauncherPrefs.kt     Favorites, hidden apps, usage counts, settings
+  Backdrop.kt          Gradient backgrounds
+profiles/              Debloat lists: generic Android TV + one per brand
+scripts/               adb tooling behind the make targets
+```
+
+To drive the emulator from your keyboard (arrows = D-pad, Enter = OK, Esc = Back), set `hw.keyboard = yes` in `~/.android/avd/<name>.avd/config.ini`.
+
+Design rules: no dependencies beyond the Kotlin stdlib, no permissions, keep the logic in pure functions with JVM unit tests, and measure cold start before adding anything heavy.
+
+Releases: pushing a `v*` tag builds a signed APK and publishes it to GitHub Releases. Set the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` first; the workflow refuses to publish debug-signed builds.
+
+## Contributing
+
+Brand profiles are the most useful contribution. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE)

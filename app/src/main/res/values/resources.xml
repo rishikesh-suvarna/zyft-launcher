@@ -2,24 +2,81 @@
 <resources>
     <string name="app_name">Zyft Launcher</string>
 
-    <color name="background">#FF0E0F12</color>
-    <color name="tile">#B3262A33</color>
+    <!-- Tokens from design/Zyft Launcher.dc.html ("Tokens" section). -->
+    <color name="surface_tile">#FF1D2027</color>
+    <color name="surface_utility">#FF14161B</color>
+    <color name="surface_sheet">#FF15171C</color>
+    <color name="surface_key">#FF2A2E37</color>
+    <color name="scrim">#99000000</color>
+    <color name="scrim_light">#80000000</color>
+    <color name="stroke_hairline">#1FFFFFFF</color>
+    <color name="stroke_tile">#0FFFFFFF</color>
+    <color name="stroke_badge">#2EFFFFFF</color>
+    <color name="stroke_empty">#38FFFFFF</color>
     <color name="text_primary">#FFF2F3F5</color>
-    <color name="text_secondary">#FF9AA0AA</color>
-    <color name="focus">#FFFFFFFF</color>
-    <color name="moving">#FFFFB300</color>
+    <color name="text_secondary">#FFA3A9B4</color>
+    <color name="text_tertiary">#FF8B919C</color>
+    <color name="text_disabled">#FF5B616C</color>
+    <color name="accent">#FFC5F36A</color>
+    <color name="ink">#FF0B0D10</color>
+    <color name="on_accent_secondary">#FF2E3A12</color>
+    <color name="badge_fill">#E00B0D10</color>
+    <color name="warning">#FFFFB547</color>
+    <color name="warning_surface">#FF3A2A0C</color>
+    <color name="warning_text">#FFFFC46B</color>
+    <color name="warning_stroke">#73FFB547</color>
+    <!-- Brand (design/Zyft Logo.dc.html) -->
+    <color name="brand_midnight">#FF0E1220</color>
+    <color name="icon_utility">#FFA3A9B4</color>
+    <!-- First frame before the chosen backdrop is applied: Midnight's top colour. -->
+    <color name="window_background">#FF0A0D16</color>
 
-    <dimen name="tile_width">168dp</dimen>
-    <dimen name="tile_height">94dp</dimen>
-    <dimen name="tile_gap">14dp</dimen>
-    <dimen name="screen_padding_h">48dp</dimen>
-    <dimen name="screen_padding_v">28dp</dimen>
+    <!-- Spacing (4 dp grid) -->
+    <dimen name="safe_x">48dp</dimen>
+    <dimen name="safe_y">27dp</dimen>
+    <dimen name="grid_gap_col">16dp</dimen>
+    <dimen name="grid_gap_row">28dp</dimen>
+    <dimen name="header_height">32dp</dimen>
+    <dimen name="favorites_top">16dp</dimen>
+    <dimen name="section_top">28dp</dimen>
+    <dimen name="section_bottom">12dp</dimen>
+    <dimen name="sheet_width">360dp</dimen>
+    <dimen name="list_item">48dp</dimen>
+    <dimen name="list_item_compact">40dp</dimen>
+    <dimen name="list_item_two_line">56dp</dimen>
+    <dimen name="empty_slot_max_width">528dp</dimen>
+
+    <!-- Radius -->
+    <dimen name="radius_tile">8dp</dimen>
+    <dimen name="radius_list">8dp</dimen>
+    <dimen name="radius_key">6dp</dimen>
+    <dimen name="radius_swatch">6dp</dimen>
+    <dimen name="radius_card">12dp</dimen>
+
+    <!-- Stroke -->
+    <dimen name="focus_gap">2dp</dimen>
+    <dimen name="focus_ring">3dp</dimen>
+    <dimen name="hairline">1dp</dimen>
+
+    <!-- Elevation (translationZ) -->
+    <dimen name="elevation_focused">8dp</dimen>
+    <dimen name="elevation_moving">16dp</dimen>
+
+    <!-- Type -->
+    <dimen name="type_clock">20sp</dimen>
+    <dimen name="type_sheet_title">20sp</dimen>
+    <dimen name="type_list_item">16sp</dimen>
+    <dimen name="type_tile_label">15sp</dimen>
+    <dimen name="type_section">15sp</dimen>
+    <dimen name="type_date">15sp</dimen>
+    <dimen name="type_body">13sp</dimen>
+    <dimen name="type_badge">13sp</dimen>
 
     <!-- Solid window background so the first frame is drawn instantly, no wallpaper decode. -->
     <style name="LauncherTheme" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
-        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowBackground">@color/window_background</item>
         <item name="android:windowShowWallpaper">false</item>
-        <item name="android:colorAccent">@color/focus</item>
+        <item name="android:colorAccent">@color/accent</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>

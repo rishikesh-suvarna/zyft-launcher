@@ -17,6 +17,13 @@ Guiding rule: every feature must keep the launcher small, offline (no internet p
 - [x] **Status header:** date next to the clock
 - [x] **No-network warning** in the header (uses the install-time `ACCESS_NETWORK_STATE` permission only)
 
+## Phase 2.5: Zyft UI v1 (done)
+
+Implemented from `design/` (Claude Design export): tokens, ZyftTile focus treatment, side sheets,
+move mode with cancel, row-snapped scrolling with a sticky header, first-run card, brand icon and banner.
+
+- [ ] Outline the "zyft" wordmark (Google Sans Medium) to vector paths for the TV banner
+
 ## Phase 3: Nice to have (opt-in)
 
 - [ ] **Photo background:** pick an image, downscaled to screen size so it costs at most about 4 MB

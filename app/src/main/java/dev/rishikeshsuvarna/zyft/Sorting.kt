@@ -1,7 +1,7 @@
 package dev.rishikeshsuvarna.zyft
 
 enum class SortMode(val title: String) {
-    ALPHABETICAL("A-Z"),
+    ALPHABETICAL("A\u2013Z"),
     MOST_USED("Most used"),
     RECENT("Recently used"),
 }

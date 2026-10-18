@@ -1,13 +1,14 @@
 package dev.rishikeshsuvarna.zyft
 
 import android.app.Activity
-import android.app.AlertDialog
+import android.animation.ObjectAnimator
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.drawable.Drawable
+import android.graphics.Rect
+import android.graphics.drawable.GradientDrawable
 import android.media.tv.TvContract
 import android.net.ConnectivityManager
 import android.net.Network
@@ -17,18 +18,15 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.text.TextUtils
 import android.text.format.DateFormat
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Date
@@ -42,20 +40,38 @@ class MainActivity : Activity() {
     private lateinit var repository: AppRepository
     private val loader: ExecutorService = Executors.newSingleThreadExecutor()
 
-    private lateinit var scroll: ScrollView
+    private lateinit var root: FrameLayout
+    private lateinit var scroll: ZyftScrollView
+    private lateinit var content: LinearLayout
+    private lateinit var stickyHeader: BackdropSliceView
+    private lateinit var stickyLabel: TextView
+    private lateinit var stickyClock: TextView
+    private lateinit var bottomFade: BackdropSliceView
+    private lateinit var scrollTrack: FrameLayout
+    private lateinit var scrollThumb: View
+    private var scrollAnimator: ObjectAnimator? = null
+    private var welcomeCard: View? = null
+    private var activeSheet: SideSheet? = null
     private lateinit var clock: TextView
     private lateinit var date: TextView
-    private lateinit var networkStatus: TextView
+    private lateinit var statusChip: LinearLayout
+    private lateinit var statusText: TextView
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private lateinit var favoritesGrid: LinearLayout
     private lateinit var favoritesLabel: TextView
     private lateinit var appsLabel: TextView
     private lateinit var appsGrid: LinearLayout
+    private lateinit var emptyFavorites: View
+    private lateinit var metrics: GridMetrics
 
     private var apps: List<AppEntry> = emptyList()
     private var visibleFavorites: List<AppEntry> = emptyList()
     /** Package of the favorite being dragged in move mode, or null when not moving. */
     private var movingKey: String? = null
+    /** Favorites order when move mode started, restored if the move is cancelled with Back. */
+    private var orderBeforeMove: List<String> = emptyList()
+    private lateinit var header: View
+    private lateinit var moveHint: View
     /** Bumped on every load so a slow, stale load can't overwrite a newer one. */
     private var loadGeneration = 0
 
@@ -80,7 +96,13 @@ class MainActivity : Activity() {
         prefs = LauncherPrefs(this)
         repository = AppRepository(packageManager, packageName)
         applyBackdrop()
+        metrics = resources.displayMetrics.let { gridMetrics(it.widthPixels, it.density) }
         setContentView(buildLayout())
+        applyBackdrop()
+        // Row-snapped scrolling (screen 08): follow focus ourselves instead of ScrollView's default.
+        root.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
+            if (newFocus is TileView && isInHome(newFocus)) onTileFocused(newFocus)
+        }
 
         registerSystemReceiver(packageReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -130,8 +152,8 @@ class MainActivity : Activity() {
     /** Home pressed while already home: jump back to the top. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        scroll.scrollTo(0, 0)
-        focusFirstTile()
+        if (activeSheet != null || welcomeCard != null) return
+        jumpToTop()
     }
 
     /**
@@ -139,25 +161,44 @@ class MainActivity : Activity() {
      * launch the app and left/right would move focus instead of the tile.
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        activeSheet?.let { sheet -> return sheet.interceptKey(event) || super.dispatchKeyEvent(event) }
+        if (welcomeCard != null && event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_DOWN) dismissWelcome()
+            return true
+        }
         val moving = movingKey ?: return super.dispatchKeyEvent(event)
         val isDown = event.action == KeyEvent.ACTION_DOWN
         when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> if (isDown) {
                 val direction = if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1
                 val visible = visibleFavorites.map { it.packageName }.toSet()
+                val before = favoriteTilePositions()
                 prefs.moveFavorite(moving, direction) { it in visible }
                 render()
+                animateSwaps(before)
             }
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BACK ->
-                if (isDown) endMove()
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> if (isDown) endMove()
+            KeyEvent.KEYCODE_BACK -> if (isDown) {
+                prefs.setFavorites(orderBeforeMove)
+                endMove()
+            }
             // Up/down would leave the row mid-move; swallow everything else too.
         }
         return true
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
-        // A home screen has nowhere to go back to.
-        KeyEvent.KEYCODE_BACK -> true
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when {
+        // Number keys and Menu belong to the home grid, not to an open sheet.
+        activeSheet != null -> super.onKeyDown(keyCode, event)
+        else -> onHomeKeyDown(keyCode, event)
+    }
+
+    private fun onHomeKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
+        // A home screen has nowhere to go back to; Back jumps to the top instead (screen 08).
+        KeyEvent.KEYCODE_BACK -> {
+            if (scroll.scrollY > 0) jumpToTop()
+            true
+        }
         in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9,
         in KeyEvent.KEYCODE_NUMPAD_1..KeyEvent.KEYCODE_NUMPAD_9 -> {
             favoriteSlotForKey(keyCode)?.let(visibleFavorites::getOrNull)?.let(::launch)
@@ -187,25 +228,30 @@ class MainActivity : Activity() {
     private fun render() {
         val focusedKey = currentFocus?.let(::tileKey)
         // Our Settings tile replaces the system Settings app, so don't show it twice.
-        val hidden = prefs.hidden + listOfNotNull(systemSettingsPackage())
+        val userHidden = if (prefs.showHidden) emptySet() else prefs.hidden
+        val hidden = userHidden + listOfNotNull(systemSettingsPackage())
         val sortMode = prefs.sortMode
         val order = comparatorFor<AppEntry>(sortMode, { it.label }, { prefs.usage(it.packageName) })
         val arranged = arrange(apps, prefs.favorites, hidden, { it.packageName }, order)
-        appsLabel.text = "Apps  ·  ${sortMode.title}"
+        appsLabel.text = twoTone("Apps", sortMode.title)
 
         visibleFavorites = arranged.favorites
         fillGrid(favoritesGrid, arranged.favorites.mapIndexed { index, app ->
             appTile(app, number = (index + 1).takeIf { it <= MAX_NUMBERED_FAVORITES })
         })
-        favoritesLabel.visibility = if (arranged.favorites.isEmpty()) View.GONE else View.VISIBLE
-        favoritesLabel.text = if (movingKey != null) "Favorites  ·  Left / right to move, OK to finish" else "Favorites"
+        emptyFavorites.visibility = if (arranged.favorites.isEmpty()) View.VISIBLE else View.GONE
+        val movingApp = arranged.favorites.firstOrNull { it.packageName == movingKey }
+        favoritesLabel.text = movingApp?.let { twoTone("Favorites", "Moving \u201C${it.label}\u201D", R.color.accent) } ?: "Favorites"
 
         fillGrid(appsGrid, arranged.others.map(::appTile) + systemTiles())
+        applyMoveDimming(moving = movingApp != null)
 
         val restored = focusedKey?.let { key ->
             allTiles().firstOrNull { tileKey(it) == key }
         }
         if (restored != null) restored.requestFocus() else focusFirstTile()
+        showWelcomeIfFirstRun()
+        scroll.post { onHomeScrolled(scroll.scrollY) }
     }
 
     // endregion
@@ -213,150 +259,340 @@ class MainActivity : Activity() {
     // region Layout
 
     private fun buildLayout(): View {
-        clock = text(sizeSp = 22f, color = R.color.text_primary)
-        networkStatus = text(sizeSp = 16f, color = R.color.moving).apply {
-            visibility = View.GONE
-            setPadding(0, 0, dp(18), 0)
-        }
-        date = text(sizeSp = 16f, color = R.color.text_secondary).apply {
-            setPadding(0, 0, dp(14), 0)
-        }
-        val header = LinearLayout(this).apply {
+        statusText = label(R.dimen.type_badge, R.color.warning_text, medium = true)
+        statusChip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))
-            addView(networkStatus)
-            addView(date)
+            visibility = View.GONE
+            setPadding(dp(12), 0, dp(12), 0)
+            background = roundedFill(R.color.warning_surface, R.dimen.radius_card, R.color.warning_stroke).apply {
+                cornerRadius = dp(14).toFloat()
+            }
+            addView(View(context).apply {
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(getColor(R.color.warning)) }
+            }, LinearLayout.LayoutParams(dp(6), dp(6)).apply { marginEnd = dp(8) })
+            addView(statusText)
+        }
+        date = label(R.dimen.type_date, R.color.text_secondary)
+        clock = label(R.dimen.type_clock, R.color.text_primary, medium = true)
+        header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            addView(statusChip, LinearLayout.LayoutParams(WRAP_CONTENT, dp(28)).apply { marginEnd = dp(16) })
+            addView(date, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginEnd = dp(12) })
             addView(clock)
         }
 
-        favoritesLabel = sectionLabel("Favorites")
-        // Wraps like the app grid instead of scrolling sideways, so no tile is ever cut off.
-        favoritesGrid = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            clipChildren = false
-        }
+        favoritesLabel = sectionLabel()
+        // Room for the caption under a focused banner in the last row, which would otherwise
+        // run into the "Apps" label (the design's 28 dp row gap only covers rows within a grid).
+        favoritesGrid = grid().apply { setPadding(0, 0, 0, dp(CAPTION_ROOM_DP)) }
+        emptyFavorites = emptyFavoritesSlot()
+        appsLabel = sectionLabel()
+        appsGrid = grid()
 
-        appsGrid = LinearLayout(this).apply {
+        content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             clipChildren = false
-        }
-
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            clipChildren = false
-            // Let the focused tile's scale-up spill into the screen margin instead of being cut off.
+            // Let the focused tile's ring and scale spill into the safe-area margin.
             clipToPadding = false
-            val h = dimen(R.dimen.screen_padding_h)
-            val v = dimen(R.dimen.screen_padding_v)
-            setPadding(h, v, h, v)
-            addView(header)
-            addView(favoritesLabel)
+            setPadding(px(R.dimen.safe_x), px(R.dimen.safe_y), px(R.dimen.safe_x), px(R.dimen.safe_y))
+            addView(header, LinearLayout.LayoutParams(MATCH_PARENT, px(R.dimen.header_height)))
+            addView(favoritesLabel, sectionParams(top = px(R.dimen.favorites_top)))
+            addView(emptyFavorites)
             addView(favoritesGrid)
-            appsLabel = sectionLabel("Apps")
-            addView(appsLabel)
+            addView(appsLabel, sectionParams(top = px(R.dimen.section_top)))
             addView(appsGrid)
         }
 
-        scroll = ScrollView(this).apply {
+        scroll = ZyftScrollView(this).apply {
             isVerticalScrollBarEnabled = false
             isFillViewport = true
             clipChildren = false
             addView(content, MATCH_PARENT, WRAP_CONTENT)
+            onScrolled = ::onHomeScrolled
         }
-        return scroll
+        moveHint = moveHintBar()
+        stickyHeader = stickyHeaderBar()
+        bottomFade = BackdropSliceView(
+            this,
+            maskColors = intArrayOf(0x00000000, 0xFF000000.toInt(), 0xFF000000.toInt()),
+            maskStops = floatArrayOf(0f, 0.85f, 1f),
+        ).apply { visibility = View.GONE }
+        scrollTrack = scrollIndicator()
+        root = FrameLayout(this).apply {
+            addView(scroll, MATCH_PARENT, MATCH_PARENT)
+            addView(bottomFade, FrameLayout.LayoutParams(MATCH_PARENT, dp(BOTTOM_FADE_DP), Gravity.BOTTOM))
+            addView(stickyHeader, FrameLayout.LayoutParams(MATCH_PARENT, stickyZone(), Gravity.TOP))
+            addView(scrollTrack, FrameLayout.LayoutParams(dp(3), MATCH_PARENT, Gravity.END).apply {
+                setMargins(0, dp(SCROLL_TRACK_INSET_DP), dp(24), dp(SCROLL_TRACK_INSET_DP))
+            })
+            addView(moveHint, FrameLayout.LayoutParams(WRAP_CONTENT, dp(44), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+                bottomMargin = px(R.dimen.safe_y)
+            })
+        }
+        return root
+    }
+
+    /** Screen 08: collapsed header shown once the real one scrolls away: section left, time right. */
+    private fun stickyHeaderBar(): BackdropSliceView {
+        stickyLabel = sectionLabel()
+        stickyClock = label(R.dimen.type_clock, R.color.text_primary, medium = true)
+        // Solid down to where grid rows start (so the real section label scrolling under it is
+        // fully hidden), with a short fade at the very bottom.
+        val fadeStart = 1f - dp(STICKY_FADE_DP).toFloat() / stickyZone()
+        return BackdropSliceView(
+            this,
+            maskColors = intArrayOf(0xFF000000.toInt(), 0xFF000000.toInt(), 0x00000000),
+            maskStops = floatArrayOf(0f, fadeStart, 1f),
+        ).apply {
+            visibility = View.GONE
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(px(R.dimen.safe_x), 0, px(R.dimen.safe_x), 0)
+                addView(stickyLabel, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+                addView(stickyClock)
+            }, FrameLayout.LayoutParams(MATCH_PARENT, px(R.dimen.header_height)).apply { topMargin = px(R.dimen.safe_y) })
+        }
+    }
+
+    /** 3 dp scroll position hint, visible only while scrolling. */
+    private fun scrollIndicator() = FrameLayout(this).apply {
+        alpha = 0f
+        background = roundedFill(R.color.stroke_hairline, R.dimen.radius_key).apply { cornerRadius = dp(2).toFloat() }
+        scrollThumb = View(context).apply {
+            background = roundedFill(R.color.text_secondary, R.dimen.radius_key).apply { cornerRadius = dp(2).toFloat() }
+        }
+        addView(scrollThumb, FrameLayout.LayoutParams(MATCH_PARENT, dp(56)))
+    }
+
+    private fun onTileFocused(tile: TileView) {
+        val rect = Rect(0, 0, tile.width, tile.height)
+        content.offsetDescendantRectToMyCoords(tile, rect)
+        val target = rowSnapScrollTarget(
+            rowTop = rect.top,
+            rowBottom = rect.bottom,
+            viewportHeight = scroll.height,
+            contentHeight = content.height,
+            stickyZone = stickyZone(),
+            rowPitch = dp(metrics.tileHeightDp) + px(R.dimen.grid_gap_row),
+            bottomReserve = px(R.dimen.safe_y) + dp(CAPTION_ROOM_DP),
+        )
+        stickyLabel.text = if (tile.parent?.parent === favoritesGrid) favoritesLabel.text else appsLabel.text
+        smoothScrollTo(target)
+    }
+
+    /** Top band covered by the collapsed header; scrolled rows start right below it. */
+    private fun stickyZone() = px(R.dimen.safe_y) + px(R.dimen.header_height) + px(R.dimen.section_top)
+
+    private fun smoothScrollTo(target: Int) {
+        if (target == scroll.scrollY) return
+        scrollAnimator?.cancel()
+        scrollAnimator = ObjectAnimator.ofInt(scroll, "scrollY", target).apply {
+            duration = Motion.SCROLL_MS
+            start()
+        }
+    }
+
+    private fun jumpToTop() {
+        smoothScrollTo(0)
+        focusFirstTile()
+    }
+
+    private fun onHomeScrolled(scrollY: Int) {
+        val collapsed = scrollY > px(R.dimen.header_height)
+        stickyHeader.visibility = if (collapsed) View.VISIBLE else View.GONE
+        bottomFade.visibility = if (scroll.canScrollVertically(1)) View.VISIBLE else View.GONE
+
+        // Thumb position and size track the viewport; fade the indicator out after scrolling stops.
+        val range = (content.height - scroll.height).coerceAtLeast(1)
+        val trackHeight = scrollTrack.height
+        val thumbHeight = (trackHeight.toLong() * scroll.height / content.height.coerceAtLeast(1)).toInt()
+            .coerceIn(dp(24), trackHeight)
+        scrollThumb.layoutParams.height = thumbHeight
+        scrollThumb.translationY = (trackHeight - thumbHeight) * scrollY.toFloat() / range
+        scrollThumb.requestLayout()
+        scrollTrack.animate().cancel()
+        scrollTrack.alpha = 1f
+        scrollTrack.animate().alpha(0f).setStartDelay(Motion.SCROLL_INDICATOR_HIDE_DELAY_MS).setDuration(Motion.FOCUS_IN_MS).start()
+    }
+
+    private fun isInHome(view: View): Boolean {
+        var parent = view.parent
+        while (parent != null) {
+            if (parent === content) return true
+            parent = parent.parent
+        }
+        return false
+    }
+
+    /** Screen 07: one-time card with the three remote gestures; single focus target. */
+    private fun showWelcomeIfFirstRun() {
+        if (prefs.welcomeSeen || welcomeCard != null) return
+        val got = label(R.dimen.type_list_item, R.color.ink, medium = true, text = "Got it").apply {
+            gravity = Gravity.CENTER
+            setPadding(dp(24), 0, dp(24), 0)
+            background = roundedFill(R.color.accent, R.dimen.radius_list)
+        }
+        // Lime ring 2 dp outside the button, matching the focus treatment.
+        val button = FrameLayout(this).apply {
+            isFocusable = true
+            isClickable = true
+            setPadding(dp(5), dp(5), dp(5), dp(5))
+            background = GradientDrawable().apply {
+                cornerRadius = resources.getDimension(R.dimen.radius_list) + dp(5)
+                setStroke(dp(3), getColor(R.color.accent))
+            }
+            addView(got, FrameLayout.LayoutParams(WRAP_CONTENT, dp(44)))
+            setOnClickListener { dismissWelcome() }
+        }
+        val hints = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            listOf("Hold OK" to "pin or move", "1\u20139" to "open a favorite", "Menu" to "app options").forEachIndexed { i, hint ->
+                addView(keyHint(hint), LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { if (i > 0) marginStart = dp(24) })
+            }
+        }
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(24), dp(20), dp(24), dp(20))
+            background = roundedFill(R.color.surface_sheet, R.dimen.radius_card, R.color.stroke_hairline)
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(label(R.dimen.type_sheet_title, R.color.text_primary, medium = true, text = "Welcome to Zyft"))
+                addView(hints, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(12) })
+            }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            addView(button, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(32) })
+        }
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(getColor(R.color.scrim_light))
+            addView(card, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, Gravity.BOTTOM).apply {
+                setMargins(px(R.dimen.safe_x), 0, px(R.dimen.safe_x), px(R.dimen.safe_y))
+            })
+        }
+        welcomeCard = overlay
+        scroll.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        root.addView(overlay, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        button.requestFocus()
+    }
+
+    private fun dismissWelcome() {
+        val card = welcomeCard ?: return
+        prefs.welcomeSeen = true
+        welcomeCard = null
+        root.removeView(card)
+        scroll.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        // Design: focus lands on the first app.
+        (tilesIn(appsGrid).firstOrNull() ?: allTiles().firstOrNull())?.requestFocus()
+    }
+
+    /** Screen 03: floating key hint while a favorite is being moved. */
+    private fun moveHintBar() = keyHint(
+        "\u25C0 \u25B6" to "Left / right to move",
+        "OK" to "finish",
+        "Back" to "cancel",
+        captionColorRes = R.color.text_primary,
+    ).apply {
+        visibility = View.GONE
+        setPadding(dp(20), 0, dp(20), 0)
+        background = roundedFill(R.color.surface_sheet, R.dimen.radius_card, R.color.stroke_hairline).apply {
+            cornerRadius = dp(22).toFloat()
+        }
+    }
+
+    /** Everything except the lifted tile drops to 40% so the move reads at a glance. */
+    private fun applyMoveDimming(moving: Boolean) {
+        val dim = if (moving) Scale.DIMMED_ALPHA else 1f
+        header.alpha = dim
+        appsLabel.alpha = dim
+        appsGrid.alpha = dim
+        tilesIn(favoritesGrid).forEach { it.alpha = if (!moving || tileKey(it) == movingKey) 1f else dim }
+        moveHint.visibility = if (moving) View.VISIBLE else View.GONE
+    }
+
+    /** Layout slot (x in row, row top), ignoring the lift/scale transforms of the moving tile. */
+    private fun slotOf(tile: View) = intArrayOf(tile.left, (tile.parent as View).top)
+
+    private fun favoriteTilePositions(): Map<String, IntArray> = tilesIn(favoritesGrid).mapNotNull { tile ->
+        tileKey(tile)?.let { key -> key to slotOf(tile) }
+    }.toMap()
+
+    /** Tiles that changed slot on the same row slide from their old x instead of jumping. */
+    private fun animateSwaps(before: Map<String, IntArray>) {
+        favoritesGrid.post {
+            tilesIn(favoritesGrid).forEach { tile ->
+                val old = tileKey(tile)?.let(before::get) ?: return@forEach
+                val now = slotOf(tile)
+                if (old[1] != now[1] || old[0] == now[0]) return@forEach
+                tile.translationX = (old[0] - now[0]).toFloat()
+                tile.animate().translationX(0f).setDuration(Motion.MOVE_MS).start()
+            }
+        }
+    }
+
+    private fun sectionLabel() = label(R.dimen.type_section, R.color.text_primary, medium = true)
+
+    private fun sectionParams(top: Int) = LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+        topMargin = top
+        bottomMargin = px(R.dimen.section_bottom)
+    }
+
+    private fun grid() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        clipChildren = false
+        clipToPadding = false
+    }
+
+    /** Dashed, non-focusable placeholder that teaches pinning while there are no favorites. */
+    private fun emptyFavoritesSlot() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER_VERTICAL
+        visibility = View.GONE
+        setPadding(dp(24), 0, dp(24), 0)
+        background = GradientDrawable().apply {
+            cornerRadius = resources.getDimension(R.dimen.radius_tile)
+            setStroke(dp(1.5f), getColor(R.color.stroke_empty), dp(6).toFloat(), dp(4).toFloat())
+        }
+        addView(label(R.dimen.type_list_item, R.color.text_primary, medium = true, text = "No favorites yet"))
+        addView(label(R.dimen.type_body, R.color.text_secondary,
+            text = "Hold OK on any app, then choose Add to favorites. Pinned apps get a number key.").apply {
+            setPadding(0, dp(4), 0, 0)
+        })
+        layoutParams = LinearLayout.LayoutParams(
+            minOf(px(R.dimen.empty_slot_max_width), resources.displayMetrics.widthPixels - 2 * px(R.dimen.safe_x)),
+            dp(metrics.tileHeightDp),
+        )
     }
 
     /** [number] badges a favorite with its remote shortcut key. */
     private fun appTile(app: AppEntry, number: Int? = null): View {
-        val content = app.banner?.let(::bannerView) ?: iconWithLabel(app.icon, app.label)
-        val tile = tile(content, tag = app, onClick = { launch(app) }, onLongClick = { showAppMenu(app) })
-        number?.let { (tile as FrameLayout).addView(numberBadge(it)) }
-        if (app.packageName == movingKey) tile.setBackgroundResource(R.drawable.tile_moving)
+        val banner = app.banner
+        val tile = if (banner != null) {
+            TileView(this, TileView.Kind.BANNER).apply { setBanner(banner); caption = app.label }
+        } else {
+            TileView(this, TileView.Kind.APP).apply { setIconAndLabel(app.icon, app.label, APP_ICON_DP) }
+        }
+        number?.let(tile::setBadge)
+        tile.tag = app
+        tile.setOnClickListener { launch(app) }
+        tile.setOnLongClickListener { showAppMenu(app); true }
+        if (app.packageName == movingKey) tile.isMoving = true
         return tile
     }
 
     private fun systemTiles(): List<View> = listOf(
-        tile(
-            iconWithLabel(getDrawable(android.R.drawable.ic_menu_view), "Inputs"),
-            tag = TILE_INPUTS,
-            onClick = ::showInputs,
-        ),
-        tile(
-            iconWithLabel(getDrawable(android.R.drawable.ic_menu_preferences), "Settings"),
-            tag = TILE_SETTINGS,
-            onClick = { safeStart(Intent(Settings.ACTION_SETTINGS)) },
-        ),
-        tile(
-            iconWithLabel(getDrawable(android.R.drawable.ic_menu_edit), "Customize"),
-            tag = TILE_CUSTOMIZE,
-            onClick = ::showCustomizeMenu,
-        ),
+        utilityTile(R.drawable.ic_util_inputs, "Inputs", TILE_INPUTS, ::showInputs),
+        utilityTile(R.drawable.ic_util_settings, "Settings", TILE_SETTINGS) { safeStart(Intent(Settings.ACTION_SETTINGS)) },
+        utilityTile(R.drawable.ic_util_customize, "Customize", TILE_CUSTOMIZE, ::showCustomizeMenu),
     )
 
-    private fun tile(
-        content: View,
-        tag: Any? = null,
-        onClick: () -> Unit,
-        onLongClick: (() -> Unit)? = null,
-    ): View = FrameLayout(this).apply {
-        this.tag = tag
-        isFocusable = true
-        isClickable = true
-        setBackgroundResource(R.drawable.tile_background)
-        clipToOutline = true
-        val pad = dp(3)
-        setPadding(pad, pad, pad, pad)
-        addView(content, MATCH_PARENT, MATCH_PARENT)
-        layoutParams = LinearLayout.LayoutParams(dimen(R.dimen.tile_width), dimen(R.dimen.tile_height)).apply {
-            val gap = dimen(R.dimen.tile_gap)
-            setMargins(0, gap / 2, gap, gap / 2)
+    private fun utilityTile(iconRes: Int, label: String, key: String, onClick: () -> Unit) =
+        TileView(this, TileView.Kind.UTILITY).apply {
+            setIconAndLabel(getDrawable(iconRes), label, UTILITY_ICON_DP)
+            tag = key
+            setOnClickListener { onClick() }
         }
-        setOnClickListener { onClick() }
-        onLongClick?.let { handler -> setOnLongClickListener { handler(); true } }
-        setOnFocusChangeListener { view, hasFocus ->
-            val scale = if (hasFocus) FOCUSED_SCALE else 1f
-            view.animate().scaleX(scale).scaleY(scale).setDuration(FOCUS_ANIM_MS).start()
-            view.elevation = if (hasFocus) dp(8).toFloat() else 0f
-        }
-    }
-
-    private fun numberBadge(number: Int) = text(sizeSp = 11f, color = R.color.text_primary).apply {
-        text = number.toString()
-        gravity = Gravity.CENTER
-        setBackgroundResource(R.drawable.number_badge)
-        layoutParams = FrameLayout.LayoutParams(dp(20), dp(20), Gravity.TOP or Gravity.START).apply {
-            setMargins(dp(4), dp(4), 0, 0)
-        }
-    }
-
-    private fun bannerView(banner: Drawable) = ImageView(this).apply {
-        setImageDrawable(banner)
-        scaleType = ImageView.ScaleType.FIT_CENTER
-    }
-
-    private fun iconWithLabel(icon: Drawable?, label: String) = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        gravity = Gravity.CENTER
-        addView(ImageView(context).apply { setImageDrawable(icon) }, LinearLayout.LayoutParams(dp(40), dp(40)))
-        addView(text(sizeSp = 13f, color = R.color.text_primary).apply {
-            text = label
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            gravity = Gravity.CENTER
-            setPadding(dp(6), dp(6), dp(6), 0)
-        })
-    }
-
-    private fun sectionLabel(label: String) = text(sizeSp = 15f, color = R.color.text_secondary).apply {
-        text = label
-        setPadding(0, dp(18), 0, dp(6))
-    }
-
-    private fun text(sizeSp: Float, color: Int) = TextView(this).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
-        setTextColor(getColor(color))
-    }
 
     // endregion
 
@@ -367,27 +603,61 @@ class MainActivity : Activity() {
         safeStart(app.launchIntent)
     }
 
+    /** Shows [sheet] over the home screen and parks home focus until it closes. */
+    private fun openSheet(sheet: SideSheet) {
+        val returnFocus = currentFocus
+        activeSheet = sheet
+        scroll.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        sheet.show(root)
+        sheetReturnFocus = returnFocus
+    }
+
+    private var sheetReturnFocus: View? = null
+
+    private fun onSheetClosed() {
+        activeSheet = null
+        scroll.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        val key = sheetReturnFocus?.let(::tileKey)
+        sheetReturnFocus = null
+        (key?.let { k -> allTiles().firstOrNull { tileKey(it) == k } } ?: allTiles().firstOrNull())?.requestFocus()
+    }
+
+    private fun newSheet(withScrim: Boolean = true, wrapFocus: Boolean = true) =
+        SideSheet(this, withScrim, wrapFocus, onClosed = ::onSheetClosed)
+
+    /** Screen 04: right-side sheet; the first action adapts to favorite / not favorite. */
     private fun showAppMenu(app: AppEntry) {
-        val isFavorite = prefs.isFavorite(app.packageName)
-        val actions = buildList<Pair<String, () -> Unit>> {
-            if (isFavorite) {
-                if (visibleFavorites.size > 1) add("Move" to { movingKey = app.packageName })
-                add("Remove from favorites" to { prefs.toggleFavorite(app.packageName) })
-            } else {
-                add("Add to favorites" to { prefs.toggleFavorite(app.packageName) })
-            }
-            add("Hide" to { prefs.hide(app.packageName) })
-            add("App info" to {
-                safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${app.packageName}")))
-            })
+        val pkg = app.packageName
+        val position = visibleFavorites.indexOfFirst { it.packageName == pkg }
+        val subtitle = when {
+            prefs.isHidden(pkg) -> "Hidden"
+            position >= 0 -> "In favorites \u00B7 position ${position + 1}"
+            else -> "Not in favorites"
         }
-        AlertDialog.Builder(this)
-            .setTitle(app.label)
-            .setItems(actions.map { it.first }.toTypedArray()) { _, which ->
-                actions[which].second()
-                render()
-            }
-            .show()
+        val sheet = newSheet()
+        fun act(text: String, block: () -> Unit) = sheet.action(text) {
+            sheet.close()
+            block()
+            render()
+        }
+        sheet.appHeader(app.banner, app.icon, app.label, subtitle)
+        if (position >= 0) {
+            act("Remove from favorites") { prefs.toggleFavorite(pkg) }
+            if (visibleFavorites.size > 1) act("Move") { startMove(pkg) }
+        } else {
+            act("Add to favorites") { prefs.toggleFavorite(pkg) }
+        }
+        if (prefs.isHidden(pkg)) act("Unhide") { prefs.unhide(pkg) } else act("Hide") { prefs.hide(pkg) }
+        act("App info") {
+            safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")))
+        }
+        sheet.footerHint("Back" to "close")
+        openSheet(sheet)
+    }
+
+    private fun startMove(pkg: String) {
+        orderBeforeMove = prefs.favorites
+        movingKey = pkg
     }
 
     private fun endMove() {
@@ -395,59 +665,117 @@ class MainActivity : Activity() {
         render()
     }
 
+    /**
+     * Screen 05: no scrim, so sort and hidden-app changes show live behind the sheet, and
+     * focusing a background swatch previews it on the real home screen. Back reverts an
+     * unconfirmed preview; OK applies.
+     */
     private fun showCustomizeMenu() {
-        val hiddenCount = prefs.hidden.size
-        val actions = buildList<Pair<String, () -> Unit>> {
-            add("Sort apps: ${prefs.sortMode.title}" to ::showSortPicker)
-            add("Background: ${prefs.backdrop.title}" to ::showBackdropPicker)
-            if (hiddenCount > 0) add("Show hidden apps ($hiddenCount)" to { prefs.unhideAll(); render() })
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Customize")
-            .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
-            .show()
+        val sheet = newSheet(withScrim = false, wrapFocus = false)
+        sheet.onDismiss = ::applyBackdrop
+        fillCustomize(sheet, focusTag = null)
+        openSheet(sheet)
     }
 
-    private fun showSortPicker() {
-        val modes = SortMode.entries
-        AlertDialog.Builder(this)
-            .setTitle("Sort apps")
-            .setSingleChoiceItems(modes.map { it.title }.toTypedArray(), prefs.sortMode.ordinal) { dialog, which ->
-                prefs.sortMode = modes[which]
+    private fun fillCustomize(sheet: SideSheet, focusTag: String?) {
+        sheet.body.removeAllViews()
+        sheet.title("Customize", topPaddingDp = 4, bottomPaddingDp = 16)
+        sheet.caption("Sort apps")
+        SortMode.entries.forEach { mode ->
+            sheet.radio(mode.title, selected = mode == prefs.sortMode) {
+                prefs.sortMode = mode
                 render()
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun showBackdropPicker() {
-        val backdrops = Backdrop.entries
-        AlertDialog.Builder(this)
-            .setTitle("Background")
-            .setSingleChoiceItems(backdrops.map { it.title }.toTypedArray(), prefs.backdrop.ordinal) { dialog, which ->
-                prefs.backdrop = backdrops[which]
-                applyBackdrop()
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    /** HDMI / AV inputs, launched through the system's TV input passthrough. */
-    private fun showInputs() {
-        val inputs = getSystemService(TvInputManager::class.java)
-            ?.tvInputList
-            ?.filter { it.isPassthroughInput }
-            .orEmpty()
-        if (inputs.isEmpty()) {
-            toast("No external inputs found")
-            return
+                fillCustomize(sheet, focusTag = "sort:${mode.name}")
+            }.tag = "sort:${mode.name}"
         }
-        AlertDialog.Builder(this)
-            .setTitle("Inputs")
-            .setItems(inputs.map { it.loadLabel(this).toString() }.toTypedArray()) { _, which ->
-                safeStart(Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(inputs[which].id)))
+        sheet.caption("Background", topPaddingDp = 16)
+        sheet.body.addView(backdropSwatches(sheet))
+        val hiddenCount = prefs.hidden.size
+        sheet.toggle("Show hidden apps ($hiddenCount)", on = prefs.showHidden) {
+            prefs.showHidden = !prefs.showHidden
+            render()
+            fillCustomize(sheet, focusTag = "hidden")
+        }.apply {
+            tag = "hidden"
+            (layoutParams as LinearLayout.LayoutParams).topMargin = dp(12)
+        }
+        sheet.footerHint("Back" to "close")
+        focusTag?.let { t -> sheet.body.findViewWithTag<View>(t)?.requestFocus() }
+    }
+
+    private fun backdropSwatches(sheet: SideSheet): View {
+        val columns = 3
+        val gap = dp(12)
+        val cellWidth = (px(R.dimen.sheet_width) - dp(28) - px(R.dimen.safe_x) - gap * (columns - 1)) / columns
+        val cellHeight = cellWidth * 9 / 16
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            Backdrop.entries.chunked(columns).forEachIndexed { rowIndex, rowItems ->
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    clipChildren = false
+                    rowItems.forEachIndexed { i, backdrop ->
+                        addView(backdropSwatch(sheet, backdrop, cellHeight), LinearLayout.LayoutParams(cellWidth, WRAP_CONTENT).apply {
+                            if (i > 0) marginStart = gap
+                        })
+                    }
+                }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { if (rowIndex > 0) topMargin = gap })
             }
-            .show()
+        }
+    }
+
+    private fun backdropSwatch(sheet: SideSheet, backdrop: Backdrop, height: Int): View {
+        val isCurrent = backdrop == prefs.backdrop
+        val name = label(R.dimen.type_body, R.color.text_secondary, text = backdrop.title).apply { setPadding(0, dp(6), 0, 0) }
+        val swatch = TileView(this, TileView.Kind.BANNER).apply {
+            setSurface(backdrop.drawable())
+            gapColor = getColor(R.color.surface_sheet)
+            tag = "backdrop:${backdrop.name}"
+            if (isCurrent) addToSurface(View(context).apply {
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(getColor(R.color.accent)) }
+            }, FrameLayout.LayoutParams(dp(8), dp(8), Gravity.BOTTOM or Gravity.END).apply { setMargins(0, 0, dp(5), dp(5)) })
+            setOnFocusChangeListener { _, focused ->
+                name.setTextColor(getColor(if (focused) R.color.text_primary else R.color.text_secondary))
+                if (!focused) return@setOnFocusChangeListener
+                showBackdrop(backdrop)
+                if (backdrop == prefs.backdrop) {
+                    sheet.footerHint("Back" to "close")
+                } else {
+                    sheet.setFooter(label(R.dimen.type_body, R.color.text_tertiary, text = "Previewing ${backdrop.title} \u00B7 OK to apply"))
+                }
+            }
+            setOnClickListener {
+                prefs.backdrop = backdrop
+                applyBackdrop()
+                fillCustomize(sheet, focusTag = "backdrop:${backdrop.name}")
+            }
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            addView(swatch, LinearLayout.LayoutParams(MATCH_PARENT, height))
+            addView(name)
+        }
+    }
+
+    /** Screen 06: HDMI / AV inputs the device reports, with signal state, via TV input passthrough. */
+    private fun showInputs() {
+        val tvInputs = getSystemService(TvInputManager::class.java)
+        val inputs = tvInputs?.tvInputList?.filter { it.isPassthroughInput }.orEmpty()
+        val sheet = newSheet()
+        sheet.title("Inputs")
+        if (inputs.isEmpty()) sheet.caption("No external inputs found on this TV.")
+        inputs.forEach { input ->
+            val label = input.loadLabel(this).toString()
+            val subtitle = inputSubtitle(label, input.loadCustomLabel(this)?.toString(), inputStateOf(tvInputs!!.getInputState(input.id)))
+            sheet.twoLine(label, subtitle) {
+                sheet.close()
+                safeStart(Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(input.id)))
+            }
+        }
+        if (inputs.isEmpty()) sheet.footerHint("Back" to "close") else sheet.footerHint("OK" to "switch", "Back" to "close")
+        openSheet(sheet)
     }
 
     private fun safeStart(intent: Intent) {
@@ -476,30 +804,31 @@ class MainActivity : Activity() {
 
     /** Network callbacks arrive on a binder thread. */
     private fun showNetworkWarning(warning: NetworkWarning?) = runOnUiThread {
-        networkStatus.text = warning?.message.orEmpty()
-        networkStatus.visibility = if (warning == null) View.GONE else View.VISIBLE
+        statusText.text = warning?.message.orEmpty()
+        statusChip.visibility = if (warning == null) View.GONE else View.VISIBLE
     }
 
     private fun NetworkCapabilities.isCaptivePortal() =
         hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)
 
-    private fun applyBackdrop() {
-        window.setBackgroundDrawable(prefs.backdrop.drawable())
+    private fun applyBackdrop() = showBackdrop(prefs.backdrop)
+
+    /** Window plus the overlays that repaint a slice of it, so previews stay seamless. */
+    private fun showBackdrop(backdrop: Backdrop) {
+        window.setBackgroundDrawable(backdrop.drawable())
+        if (::stickyHeader.isInitialized) {
+            stickyHeader.setBackdrop(backdrop)
+            bottomFade.setBackdrop(backdrop)
+        }
     }
 
     private fun updateClock() {
         val now = Date()
         clock.text = DateFormat.getTimeFormat(this).format(now)
+        if (::stickyClock.isInitialized) stickyClock.text = clock.text
         // Locale-aware short form, e.g. "Sat, 18 Oct" or "Sat, Oct 18".
         val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), DATE_SKELETON)
         date.text = DateFormat.format(pattern, now)
-    }
-
-    /** Fits as many tiles as the screen allows instead of assuming a density. */
-    private fun gridColumns(): Int {
-        val usable = resources.displayMetrics.widthPixels - 2 * dimen(R.dimen.screen_padding_h)
-        val perTile = dimen(R.dimen.tile_width) + dimen(R.dimen.tile_gap)
-        return (usable / perTile).coerceAtLeast(1)
     }
 
     private fun systemSettingsPackage(): String? =
@@ -514,11 +843,20 @@ class MainActivity : Activity() {
 
     private fun fillGrid(grid: LinearLayout, tiles: List<View>) {
         grid.removeAllViews()
-        tiles.chunked(gridColumns()).forEach { rowTiles ->
+        val width = dp(metrics.tileWidthDp)
+        val height = dp(metrics.tileHeightDp)
+        tiles.chunked(metrics.columns).forEachIndexed { rowIndex, rowTiles ->
             grid.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 clipChildren = false
-                rowTiles.forEach(::addView)
+                clipToPadding = false
+                rowTiles.forEachIndexed { i, tile ->
+                    addView(tile, LinearLayout.LayoutParams(width, height).apply {
+                        if (i > 0) marginStart = px(R.dimen.grid_gap_col)
+                    })
+                }
+            }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+                if (rowIndex > 0) topMargin = px(R.dimen.grid_gap_row)
             })
         }
     }
@@ -540,15 +878,15 @@ class MainActivity : Activity() {
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
-    private fun dimen(id: Int) = resources.getDimensionPixelSize(id)
-
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
-
     // endregion
 
     private companion object {
-        const val FOCUSED_SCALE = 1.08f
-        const val FOCUS_ANIM_MS = 120L
+        const val APP_ICON_DP = 40
+        const val CAPTION_ROOM_DP = 20
+        const val BOTTOM_FADE_DP = 96
+        const val STICKY_FADE_DP = 12
+        const val SCROLL_TRACK_INSET_DP = 87
+        const val UTILITY_ICON_DP = 28
         const val DATE_SKELETON = "EEEdMMM"
 
         // Prefixed so they can never collide with a package name.

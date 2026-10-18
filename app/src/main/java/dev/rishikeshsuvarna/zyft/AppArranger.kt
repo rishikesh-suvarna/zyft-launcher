@@ -1,4 +1,4 @@
-package dev.rishi.tvlauncher
+package dev.rishikeshsuvarna.zyft
 
 data class Arranged<T>(val favorites: List<T>, val others: List<T>)
 

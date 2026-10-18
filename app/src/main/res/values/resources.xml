@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Lite Launcher</string>
+    <string name="app_name">Zyft Launcher</string>
 
     <color name="background">#FF0E0F12</color>
     <color name="tile">#B3262A33</color>

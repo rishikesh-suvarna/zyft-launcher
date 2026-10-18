@@ -5,7 +5,12 @@ set -euo pipefail
 
 readonly ADB_PORT=5555
 readonly CONNECT_TIMEOUT_S=30
-readonly SELF_PKG="dev.rishi.tvlauncher"
+readonly SELF_PKG="dev.rishikeshsuvarna.zyft"
+# Earlier package names of this launcher. A different package is a different app to Android,
+# so an old one would linger as a second home app after upgrading.
+readonly LEGACY_PKGS=(
+  dev.rishi.tvlauncher   # "Lite Launcher", v1.0.0
+)
 readonly SELF_HOME="$SELF_PKG/.MainActivity"
 readonly APK="${APK:-app/build/outputs/apk/release/app-release.apk}"
 PROFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../profiles" && pwd)"

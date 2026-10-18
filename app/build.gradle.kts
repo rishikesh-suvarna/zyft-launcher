@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "dev.rishi.tvlauncher"
+    namespace = "dev.rishikeshsuvarna.zyft"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.rishi.tvlauncher"
+        applicationId = "dev.rishikeshsuvarna.zyft"
         minSdk = 24
         targetSdk = 35
         // CI passes these from the git tag; local builds use the defaults.

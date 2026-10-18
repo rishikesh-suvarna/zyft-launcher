@@ -1,4 +1,4 @@
-package dev.rishi.tvlauncher
+package dev.rishikeshsuvarna.zyft
 
 enum class NetworkWarning(val message: String) {
     NO_NETWORK("No network"),

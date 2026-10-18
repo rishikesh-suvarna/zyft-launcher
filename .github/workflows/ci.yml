@@ -42,7 +42,7 @@ jobs:
       - if: ${{ !env.ACT }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: lite-launcher-apk
+          name: zyft-launcher-apk
           path: app/build/outputs/apk/release/app-release.apk
 
   release:
@@ -84,9 +84,9 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           ./gradlew assembleRelease -PversionName="$version" -PversionCode="${{ github.run_number }}"
-          cp app/build/outputs/apk/release/app-release.apk "lite-launcher-$version.apk"
+          cp app/build/outputs/apk/release/app-release.apk "zyft-launcher-$version.apk"
 
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" lite-launcher-*.apk --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" zyft-launcher-*.apk --generate-notes

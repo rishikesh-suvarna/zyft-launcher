@@ -119,6 +119,7 @@ Requirements: JDK 17 and the Android SDK (platform 36). No Android Studio needed
 make build                  # release APK in app/build/outputs/apk/release/
 make test                   # unit tests
 make check                  # everything CI runs: shellcheck, tests, lint, build
+make ci-local               # run the real GitHub Actions job in Docker via act (slow on Apple Silicon)
 make emulator               # boot an Android TV AVD named "tcl_tv"
 make install TV=emulator-5554
 ```
@@ -134,6 +135,8 @@ app/src/main/java/.../
 profiles/              Debloat lists: generic Android TV + one per brand
 scripts/               adb tooling behind the make targets
 ```
+
+To drive the emulator from your keyboard (arrows = D-pad, Enter = OK, Esc = Back), set `hw.keyboard = yes` in `~/.android/avd/<name>.avd/config.ini`.
 
 Design rules: no dependencies beyond the Kotlin stdlib, no permissions, keep the logic in pure functions with JVM unit tests, and measure cold start before adding anything heavy.
 

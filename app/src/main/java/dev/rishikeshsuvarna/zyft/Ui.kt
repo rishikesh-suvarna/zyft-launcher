@@ -39,7 +39,7 @@ fun Context.twoTone(primary: String, secondary: String?, secondaryColorRes: Int 
     if (secondary == null) return primary
     return SpannableStringBuilder(primary).apply {
         val start = length
-        append("  · ").append(secondary)
+        append(" \u00B7 ").append(secondary)
         setSpan(ForegroundColorSpan(getColor(secondaryColorRes)), start, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 }

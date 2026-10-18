@@ -19,6 +19,7 @@
     <color name="text_disabled">#FF5B616C</color>
     <color name="accent">#FFC5F36A</color>
     <color name="ink">#FF0B0D10</color>
+    <color name="on_accent_secondary">#FF2E3A12</color>
     <color name="badge_fill">#E00B0D10</color>
     <color name="warning">#FFFFB547</color>
     <color name="warning_surface">#FF3A2A0C</color>

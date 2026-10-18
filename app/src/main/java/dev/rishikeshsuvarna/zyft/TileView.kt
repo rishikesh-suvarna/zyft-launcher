@@ -136,6 +136,14 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
         }, LayoutParams(MATCH_PARENT, MATCH_PARENT))
     }
 
+    /** Replaces the surface fill, e.g. a background preset preview in Customize. */
+    fun setSurface(drawable: Drawable) {
+        surface.background = drawable
+    }
+
+    /** Small overlay inside the rounded surface (e.g. the "current" dot on a swatch). */
+    fun addToSurface(view: View, params: LayoutParams) = surface.addView(view, params)
+
     /** Remote shortcut badge, 1-9 only. */
     fun setBadge(number: Int) {
         val size = (BADGE_DP * density).toInt()

@@ -1,7 +1,6 @@
 package dev.rishikeshsuvarna.zyft
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -21,8 +20,10 @@ import android.text.format.DateFormat
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -38,7 +39,9 @@ class MainActivity : Activity() {
     private lateinit var repository: AppRepository
     private val loader: ExecutorService = Executors.newSingleThreadExecutor()
 
+    private lateinit var root: FrameLayout
     private lateinit var scroll: ScrollView
+    private var activeSheet: SideSheet? = null
     private lateinit var clock: TextView
     private lateinit var date: TextView
     private lateinit var statusChip: LinearLayout
@@ -139,6 +142,7 @@ class MainActivity : Activity() {
      * launch the app and left/right would move focus instead of the tile.
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        activeSheet?.let { sheet -> return sheet.interceptKey(event) || super.dispatchKeyEvent(event) }
         val moving = movingKey ?: return super.dispatchKeyEvent(event)
         val isDown = event.action == KeyEvent.ACTION_DOWN
         when (event.keyCode) {
@@ -155,7 +159,13 @@ class MainActivity : Activity() {
         return true
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when {
+        // Number keys and Menu belong to the home grid, not to an open sheet.
+        activeSheet != null -> super.onKeyDown(keyCode, event)
+        else -> onHomeKeyDown(keyCode, event)
+    }
+
+    private fun onHomeKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
         // A home screen has nowhere to go back to.
         KeyEvent.KEYCODE_BACK -> true
         in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9,
@@ -187,7 +197,8 @@ class MainActivity : Activity() {
     private fun render() {
         val focusedKey = currentFocus?.let(::tileKey)
         // Our Settings tile replaces the system Settings app, so don't show it twice.
-        val hidden = prefs.hidden + listOfNotNull(systemSettingsPackage())
+        val userHidden = if (prefs.showHidden) emptySet() else prefs.hidden
+        val hidden = userHidden + listOfNotNull(systemSettingsPackage())
         val sortMode = prefs.sortMode
         val order = comparatorFor<AppEntry>(sortMode, { it.label }, { prefs.usage(it.packageName) })
         val arranged = arrange(apps, prefs.favorites, hidden, { it.packageName }, order)
@@ -263,7 +274,8 @@ class MainActivity : Activity() {
             clipChildren = false
             addView(content, MATCH_PARENT, WRAP_CONTENT)
         }
-        return scroll
+        root = FrameLayout(this).apply { addView(scroll, MATCH_PARENT, MATCH_PARENT) }
+        return root
     }
 
     private fun sectionLabel() = label(R.dimen.type_section, R.color.text_primary, medium = true)
@@ -338,27 +350,60 @@ class MainActivity : Activity() {
         safeStart(app.launchIntent)
     }
 
+    /** Shows [sheet] over the home screen and parks home focus until it closes. */
+    private fun openSheet(sheet: SideSheet) {
+        val returnFocus = currentFocus
+        activeSheet = sheet
+        scroll.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        sheet.show(root)
+        sheetReturnFocus = returnFocus
+    }
+
+    private var sheetReturnFocus: View? = null
+
+    private fun onSheetClosed() {
+        activeSheet = null
+        scroll.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        val key = sheetReturnFocus?.let(::tileKey)
+        sheetReturnFocus = null
+        (key?.let { k -> allTiles().firstOrNull { tileKey(it) == k } } ?: allTiles().firstOrNull())?.requestFocus()
+    }
+
+    private fun newSheet(withScrim: Boolean = true, wrapFocus: Boolean = true) =
+        SideSheet(this, withScrim, wrapFocus, onClosed = ::onSheetClosed)
+
+    /** Screen 04: right-side sheet; the first action adapts to favorite / not favorite. */
     private fun showAppMenu(app: AppEntry) {
-        val isFavorite = prefs.isFavorite(app.packageName)
-        val actions = buildList<Pair<String, () -> Unit>> {
-            if (isFavorite) {
-                if (visibleFavorites.size > 1) add("Move" to { movingKey = app.packageName })
-                add("Remove from favorites" to { prefs.toggleFavorite(app.packageName) })
-            } else {
-                add("Add to favorites" to { prefs.toggleFavorite(app.packageName) })
-            }
-            add("Hide" to { prefs.hide(app.packageName) })
-            add("App info" to {
-                safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${app.packageName}")))
-            })
+        val pkg = app.packageName
+        val position = visibleFavorites.indexOfFirst { it.packageName == pkg }
+        val subtitle = when {
+            prefs.isHidden(pkg) -> "Hidden"
+            position >= 0 -> "In favorites \u00B7 position ${position + 1}"
+            else -> "Not in favorites"
         }
-        AlertDialog.Builder(this)
-            .setTitle(app.label)
-            .setItems(actions.map { it.first }.toTypedArray()) { _, which ->
-                actions[which].second()
-                render()
-            }
-            .show()
+        val sheet = newSheet()
+        fun act(text: String, block: () -> Unit) = sheet.action(text) {
+            sheet.close()
+            block()
+            render()
+        }
+        sheet.appHeader(app.banner, app.icon, app.label, subtitle)
+        if (position >= 0) {
+            act("Remove from favorites") { prefs.toggleFavorite(pkg) }
+            if (visibleFavorites.size > 1) act("Move") { startMove(pkg) }
+        } else {
+            act("Add to favorites") { prefs.toggleFavorite(pkg) }
+        }
+        if (prefs.isHidden(pkg)) act("Unhide") { prefs.unhide(pkg) } else act("Hide") { prefs.hide(pkg) }
+        act("App info") {
+            safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")))
+        }
+        sheet.footerHint("Back" to "close")
+        openSheet(sheet)
+    }
+
+    private fun startMove(pkg: String) {
+        movingKey = pkg
     }
 
     private fun endMove() {
@@ -366,59 +411,117 @@ class MainActivity : Activity() {
         render()
     }
 
+    /**
+     * Screen 05: no scrim, so sort and hidden-app changes show live behind the sheet, and
+     * focusing a background swatch previews it on the real home screen. Back reverts an
+     * unconfirmed preview; OK applies.
+     */
     private fun showCustomizeMenu() {
-        val hiddenCount = prefs.hidden.size
-        val actions = buildList<Pair<String, () -> Unit>> {
-            add("Sort apps: ${prefs.sortMode.title}" to ::showSortPicker)
-            add("Background: ${prefs.backdrop.title}" to ::showBackdropPicker)
-            if (hiddenCount > 0) add("Show hidden apps ($hiddenCount)" to { prefs.unhideAll(); render() })
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Customize")
-            .setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
-            .show()
+        val sheet = newSheet(withScrim = false, wrapFocus = false)
+        sheet.onDismiss = ::applyBackdrop
+        fillCustomize(sheet, focusTag = null)
+        openSheet(sheet)
     }
 
-    private fun showSortPicker() {
-        val modes = SortMode.entries
-        AlertDialog.Builder(this)
-            .setTitle("Sort apps")
-            .setSingleChoiceItems(modes.map { it.title }.toTypedArray(), prefs.sortMode.ordinal) { dialog, which ->
-                prefs.sortMode = modes[which]
+    private fun fillCustomize(sheet: SideSheet, focusTag: String?) {
+        sheet.body.removeAllViews()
+        sheet.title("Customize", topPaddingDp = 4, bottomPaddingDp = 16)
+        sheet.caption("Sort apps")
+        SortMode.entries.forEach { mode ->
+            sheet.radio(mode.title, selected = mode == prefs.sortMode) {
+                prefs.sortMode = mode
                 render()
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun showBackdropPicker() {
-        val backdrops = Backdrop.entries
-        AlertDialog.Builder(this)
-            .setTitle("Background")
-            .setSingleChoiceItems(backdrops.map { it.title }.toTypedArray(), prefs.backdrop.ordinal) { dialog, which ->
-                prefs.backdrop = backdrops[which]
-                applyBackdrop()
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    /** HDMI / AV inputs, launched through the system's TV input passthrough. */
-    private fun showInputs() {
-        val inputs = getSystemService(TvInputManager::class.java)
-            ?.tvInputList
-            ?.filter { it.isPassthroughInput }
-            .orEmpty()
-        if (inputs.isEmpty()) {
-            toast("No external inputs found")
-            return
+                fillCustomize(sheet, focusTag = "sort:${mode.name}")
+            }.tag = "sort:${mode.name}"
         }
-        AlertDialog.Builder(this)
-            .setTitle("Inputs")
-            .setItems(inputs.map { it.loadLabel(this).toString() }.toTypedArray()) { _, which ->
-                safeStart(Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(inputs[which].id)))
+        sheet.caption("Background", topPaddingDp = 16)
+        sheet.body.addView(backdropSwatches(sheet))
+        val hiddenCount = prefs.hidden.size
+        sheet.toggle("Show hidden apps ($hiddenCount)", on = prefs.showHidden) {
+            prefs.showHidden = !prefs.showHidden
+            render()
+            fillCustomize(sheet, focusTag = "hidden")
+        }.apply {
+            tag = "hidden"
+            (layoutParams as LinearLayout.LayoutParams).topMargin = dp(12)
+        }
+        sheet.footerHint("Back" to "close")
+        focusTag?.let { t -> sheet.body.findViewWithTag<View>(t)?.requestFocus() }
+    }
+
+    private fun backdropSwatches(sheet: SideSheet): View {
+        val columns = 3
+        val gap = dp(12)
+        val cellWidth = (px(R.dimen.sheet_width) - dp(28) - px(R.dimen.safe_x) - gap * (columns - 1)) / columns
+        val cellHeight = cellWidth * 9 / 16
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            Backdrop.entries.chunked(columns).forEachIndexed { rowIndex, rowItems ->
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    clipChildren = false
+                    rowItems.forEachIndexed { i, backdrop ->
+                        addView(backdropSwatch(sheet, backdrop, cellHeight), LinearLayout.LayoutParams(cellWidth, WRAP_CONTENT).apply {
+                            if (i > 0) marginStart = gap
+                        })
+                    }
+                }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { if (rowIndex > 0) topMargin = gap })
             }
-            .show()
+        }
+    }
+
+    private fun backdropSwatch(sheet: SideSheet, backdrop: Backdrop, height: Int): View {
+        val isCurrent = backdrop == prefs.backdrop
+        val name = label(R.dimen.type_body, R.color.text_secondary, text = backdrop.title).apply { setPadding(0, dp(6), 0, 0) }
+        val swatch = TileView(this, TileView.Kind.BANNER).apply {
+            setSurface(backdrop.drawable())
+            gapColor = getColor(R.color.surface_sheet)
+            tag = "backdrop:${backdrop.name}"
+            if (isCurrent) addToSurface(View(context).apply {
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(getColor(R.color.accent)) }
+            }, FrameLayout.LayoutParams(dp(8), dp(8), Gravity.BOTTOM or Gravity.END).apply { setMargins(0, 0, dp(5), dp(5)) })
+            setOnFocusChangeListener { _, focused ->
+                name.setTextColor(getColor(if (focused) R.color.text_primary else R.color.text_secondary))
+                if (!focused) return@setOnFocusChangeListener
+                window.setBackgroundDrawable(backdrop.drawable())
+                if (backdrop == prefs.backdrop) {
+                    sheet.footerHint("Back" to "close")
+                } else {
+                    sheet.setFooter(label(R.dimen.type_body, R.color.text_tertiary, text = "Previewing ${backdrop.title} \u00B7 OK to apply"))
+                }
+            }
+            setOnClickListener {
+                prefs.backdrop = backdrop
+                applyBackdrop()
+                fillCustomize(sheet, focusTag = "backdrop:${backdrop.name}")
+            }
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            addView(swatch, LinearLayout.LayoutParams(MATCH_PARENT, height))
+            addView(name)
+        }
+    }
+
+    /** Screen 06: HDMI / AV inputs the device reports, with signal state, via TV input passthrough. */
+    private fun showInputs() {
+        val tvInputs = getSystemService(TvInputManager::class.java)
+        val inputs = tvInputs?.tvInputList?.filter { it.isPassthroughInput }.orEmpty()
+        val sheet = newSheet()
+        sheet.title("Inputs")
+        if (inputs.isEmpty()) sheet.caption("No external inputs found on this TV.")
+        inputs.forEach { input ->
+            val label = input.loadLabel(this).toString()
+            val subtitle = inputSubtitle(label, input.loadCustomLabel(this)?.toString(), inputStateOf(tvInputs!!.getInputState(input.id)))
+            sheet.twoLine(label, subtitle) {
+                sheet.close()
+                safeStart(Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(input.id)))
+            }
+        }
+        if (inputs.isEmpty()) sheet.footerHint("Back" to "close") else sheet.footerHint("OK" to "switch", "Back" to "close")
+        openSheet(sheet)
     }
 
     private fun safeStart(intent: Intent) {

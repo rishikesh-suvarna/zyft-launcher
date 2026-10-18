@@ -49,9 +49,16 @@ class LauncherPrefs(context: Context) {
         prefs.edit().putStringSet(KEY_HIDDEN, hidden + pkg).apply()
     }
 
-    fun unhideAll() {
-        prefs.edit().remove(KEY_HIDDEN).apply()
+    fun unhide(pkg: String) {
+        prefs.edit().putStringSet(KEY_HIDDEN, hidden - pkg).apply()
     }
+
+    fun isHidden(pkg: String) = pkg in hidden
+
+    /** Customize > Show hidden apps: hidden apps appear in the grid so they can be unhidden. */
+    var showHidden: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_HIDDEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_HIDDEN, value).apply()
 
     var sortMode: SortMode
         get() = enumOrDefault(prefs.getString(KEY_SORT, null), SortMode.ALPHABETICAL)
@@ -81,6 +88,7 @@ class LauncherPrefs(context: Context) {
         const val PREFS_NAME = "launcher"
         const val KEY_FAVORITES = "favorites"
         const val KEY_HIDDEN = "hidden"
+        const val KEY_SHOW_HIDDEN = "show_hidden"
         const val KEY_SEEDED = "seeded"
         const val KEY_DEFAULT_HIDDEN_APPLIED = "default_hidden_v1"
         const val KEY_SORT = "sort"

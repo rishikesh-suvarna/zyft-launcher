@@ -24,7 +24,7 @@ fun Context.label(textSizeRes: Int, colorRes: Int, medium: Boolean = false, text
         includeFontPadding = false
         setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(textSizeRes))
         setTextColor(getColor(colorRes))
-        if (medium) typeface = TileView.MEDIUM
+        typeface = if (medium) Fonts.medium else Fonts.regular
     }
 
 fun Context.roundedFill(colorRes: Int, radiusRes: Int, strokeColorRes: Int? = null): GradientDrawable =

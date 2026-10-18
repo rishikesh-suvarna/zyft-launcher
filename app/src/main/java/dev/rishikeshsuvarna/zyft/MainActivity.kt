@@ -94,6 +94,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = LauncherPrefs(this)
+        Fonts.load(this)
         repository = AppRepository(packageManager, packageName)
         applyBackdrop()
         metrics = resources.displayMetrics.let { gridMetrics(it.widthPixels, it.density) }

@@ -22,7 +22,8 @@ Guiding rule: every feature must keep the launcher small, offline (no internet p
 Implemented from `design/` (Claude Design export): tokens, ZyftTile focus treatment, side sheets,
 move mode with cancel, row-snapped scrolling with a sticky header, first-run card, brand icon and banner.
 
-- [ ] Outline the "zyft" wordmark (Google Sans Medium) to vector paths for the TV banner
+- [x] Outline the "zyft" wordmark (Google Sans Medium) to vector paths for the TV banner
+- [x] Google Sans as the UI font (Latin subset, 115 KB for two weights)
 
 ## Phase 3: Nice to have (opt-in)
 

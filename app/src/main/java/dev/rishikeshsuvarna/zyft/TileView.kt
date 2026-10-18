@@ -8,7 +8,6 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.TextPaint
@@ -85,7 +84,7 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
     private val captionPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         color = context.getColor(R.color.text_primary)
         textSize = resources.getDimension(R.dimen.type_tile_label)
-        typeface = MEDIUM
+        typeface = Fonts.medium
         textAlign = Paint.Align.CENTER
     }
     private val ringRect = RectF()
@@ -129,7 +128,7 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
                 gravity = Gravity.CENTER
-                typeface = MEDIUM
+                typeface = Fonts.medium
                 setTextColor(context.getColor(R.color.text_primary))
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.type_tile_label))
                 setPadding(0, (ICON_LABEL_GAP_DP * density).toInt(), 0, 0)
@@ -153,7 +152,7 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
             text = number.toString()
             gravity = Gravity.CENTER
             includeFontPadding = false
-            typeface = MEDIUM
+            typeface = Fonts.medium
             setTextColor(context.getColor(R.color.text_primary))
             setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.type_badge))
             background = GradientDrawable().apply {
@@ -276,7 +275,6 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
     }
 
     companion object {
-        val MEDIUM: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         private val EASE_OUT = DecelerateInterpolator()
         private const val OPAQUE = 255
         private const val ICON_BOX_DP = 40
@@ -288,8 +286,8 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
         private const val CHEVRON_W_DP = 10
         private const val CHEVRON_H_DP = 14
         private const val CHEVRON_OUTSET_DP = 19
-        // Design says 8 dp, but with 720p tiles and the 1.06 focus scale that touches the next row.
-        private const val CAPTION_GAP_DP = 4
+        // Wider than the design's 8 dp for legibility from the sofa; grid_gap_row is sized to fit it.
+        private const val CAPTION_GAP_DP = 10
         private const val CAPTION_OVERHANG_DP = 8
     }
 }

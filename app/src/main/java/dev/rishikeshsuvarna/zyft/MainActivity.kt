@@ -134,7 +134,7 @@ class MainActivity : Activity() {
         })
         // Row-snapped scrolling (screen 08): follow focus ourselves instead of ScrollView's default.
         root.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
-            if (newFocus is TileView && isInHome(newFocus)) onTileFocused(newFocus)
+            if (!rendering && newFocus is TileView && isInHome(newFocus)) onTileFocused(newFocus)
         }
 
         registerSystemReceiver(packageReceiver, IntentFilter().apply {
@@ -286,7 +286,35 @@ class MainActivity : Activity() {
         }
     }
 
+    /**
+     * Rebuilding the grid briefly removes the focused tile, so focus lands on some other tile
+     * (often far below) before it's restored, and the new tiles aren't laid out yet. Scrolling
+     * on those focus changes made the page jump, e.g. on every move in move mode. So focus
+     * changes are ignored while rendering and the scroll is settled once, after layout.
+     */
+    private var rendering = false
+
     private fun render() {
+        rendering = true
+        try {
+            renderGrid()
+        } finally {
+            rendering = false
+        }
+        scrollToFocusAfterLayout()
+    }
+
+    private fun scrollToFocusAfterLayout() {
+        root.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                root.viewTreeObserver.removeOnPreDrawListener(this)
+                (currentFocus as? TileView)?.takeIf(::isInHome)?.let(::onTileFocused)
+                return true
+            }
+        })
+    }
+
+    private fun renderGrid() {
         val focusedKey = currentFocus?.let(::tileKey)
         // Our Settings tile replaces the system Settings app, so don't show it twice.
         val userHidden = if (prefs.showHidden) emptySet() else prefs.hidden

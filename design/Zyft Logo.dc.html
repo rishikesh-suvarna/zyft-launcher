@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500&display=swap">
+<style>body{margin:0;background:#060708;color:#F2F3F5;} a{color:#C5F36A;text-decoration:none;} a:hover{color:#E2FAB0;text-decoration:underline;}</style>
+</helmet>
+<div style="padding:96px;display:flex;flex-direction:column;gap:72px;font-family:'Google Sans','Google Sans Flex',system-ui,sans-serif;background:#060708;min-width:1700px;">
+  <header style="display:flex;justify-content:space-between;align-items:flex-end;gap:48px;">
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="font-family:'Google Sans Code',monospace;font-size:14px;color:#8B919C;letter-spacing:0.08em;">ZYFT · LOGO OPTIONS</div>
+      <div style="font-size:56px;font-weight:500;letter-spacing:-0.02em;line-height:1;">Four marks, one wordmark</div>
+      <div style="font-size:18px;color:#A3A9B4;max-width:900px;text-wrap:pretty;">Wordmark: Google Sans Medium, −2 % tracking, outlined to paths for the vector drawables. Palette: Midnight #0E1220, Lime #C5F36A, White #F2F3F5 — max 3 flat fills per asset.</div>
+    </div>
+    <a href="Zyft%20Launcher.dc.html" style="font-size:18px;">← UI kit</a>
+  </header>
+
+  <sc-for list="{{ options }}" as="o" hint-placeholder-count="4">
+    <div id="{{ o.id }}" style="display:flex;flex-direction:column;gap:20px;padding-top:40px;border-top:1px solid #16181C;">
+      <div style="display:flex;align-items:baseline;gap:16px;">
+        <span style="font-family:'Google Sans Code',monospace;font-size:14px;padding:4px 10px;border-radius:6px;background:#15171C;color:#C5F36A;">{{ o.id }}</span>
+        <span style="font-size:28px;font-weight:500;">{{ o.title }}</span>
+        <sc-if value="{{ o.rec }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;font-weight:500;color:#0B0D10;background:#C5F36A;padding:4px 10px;border-radius:12px;">Recommended</span></sc-if>
+        <span style="font-size:16px;color:#8B919C;">{{ o.desc }}</span>
+      </div>
+      <div style="display:flex;gap:24px;align-items:stretch;flex-wrap:wrap;">
+        <div style="width:220px;height:220px;border-radius:12px;background:#0E1220;display:flex;align-items:center;justify-content:center;">
+          <svg width="150" height="150" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg>
+        </div>
+        <div style="width:220px;height:220px;border-radius:12px;background:#0E1220;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+          <div style="display:flex;align-items:flex-end;gap:24px;">
+            <svg width="48" height="48" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg>
+            <svg width="24" height="24" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg>
+          </div>
+          <div style="font-family:'Google Sans Code',monospace;font-size:13px;color:#8B919C;">48 dp · 24 dp</div>
+        </div>
+        <div style="width:320px;height:180px;align-self:center;border-radius:4px;background:#0E1220;display:flex;align-items:center;justify-content:center;gap:16px;position:relative;">
+          <svg width="56" height="56" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg>
+          <span style="font-size:52px;font-weight:500;letter-spacing:-0.02em;color:#F2F3F5;line-height:1;padding-bottom:6px;">{{ word }}</span>
+          <span style="position:absolute;left:8px;bottom:-24px;font-family:'Google Sans Code',monospace;font-size:13px;color:#8B919C;">TV banner 320×180</span>
+        </div>
+        <div style="display:flex;gap:20px;align-items:center;padding:0 12px;">
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+            <div style="width:108px;height:108px;background:#0E1220;position:relative;display:flex;align-items:center;justify-content:center;">
+              <svg width="60" height="60" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg>
+              <div style="position:absolute;left:18px;top:18px;width:72px;height:72px;border-radius:36px;border:1px dashed #FF5FA2;box-sizing:border-box;"></div>
+            </div>
+            <span style="font-family:'Google Sans Code',monospace;font-size:13px;color:#8B919C;">108 / 72 safe</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+            <div style="width:108px;height:108px;border-radius:54px;background:#0E1220;display:flex;align-items:center;justify-content:center;"><svg width="60" height="60" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg></div>
+            <span style="font-family:'Google Sans Code',monospace;font-size:13px;color:#8B919C;">circle</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+            <div style="width:108px;height:108px;border-radius:30px;background:#0E1220;display:flex;align-items:center;justify-content:center;"><svg width="60" height="60" viewBox="0 0 48 48"><sc-for list="{{ o.shapes }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#C5F36A"></polygon></sc-if></svg></div>
+            <span style="font-family:'Google Sans Code',monospace;font-size:13px;color:#8B919C;">squircle</span>
+          </div>
+        </div>
+        <div style="flex:1;min-width:260px;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:24px 28px;border-radius:12px;background:#F2F3F5;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <svg width="44" height="44" viewBox="0 0 48 48"><sc-for list="{{ o.shapesLight }}" as="s" hint-placeholder-count="2"><rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="{{ s.rx }}" fill="{{ s.fill }}" stroke="{{ s.stroke }}" stroke-width="{{ s.sw }}"></rect></sc-for><sc-if value="{{ o.poly }}" hint-placeholder-val="{{ false }}"><polygon points="{{ o.poly }}" fill="#0E1220"></polygon></sc-if></svg>
+            <span style="font-size:44px;font-weight:500;letter-spacing:-0.02em;color:#0E1220;line-height:1;padding-bottom:4px;">{{ word }}</span>
+          </div>
+          <div style="font-size:14px;color:#4A505C;">Mono on light (store listings, docs)</div>
+        </div>
+      </div>
+      <div style="font-size:16px;color:#A3A9B4;max-width:1100px;text-wrap:pretty;">{{ o.note }}</div>
+    </div>
+  </sc-for>
+
+  <div style="display:flex;flex-direction:column;gap:20px;padding-top:40px;border-top:1px solid #16181C;">
+    <div style="font-size:24px;font-weight:500;">Recommended mark on all six backgrounds · 48 dp</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <sc-for list="{{ presets }}" as="p" hint-placeholder-count="6">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="width:200px;height:112px;border-radius:8px;background:{{ p.bg }};display:flex;align-items:center;justify-content:center;gap:12px;">
+            <svg width="48" height="48" viewBox="0 0 48 48"><rect x="3.5" y="10.5" width="41" height="27" rx="8" fill="none" stroke="#C5F36A" stroke-width="3"></rect><rect x="10" y="17" width="28" height="14" rx="3" fill="#F2F3F5"></rect></svg>
+            <span style="font-size:32px;font-weight:500;letter-spacing:-0.02em;padding-bottom:4px;">{{ word }}</span>
+          </div>
+          <span style="font-size:14px;color:#8B919C;">{{ p.name }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;wordCase&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;lowercase&quot;,&quot;Titlecase&quot;],&quot;default&quot;:&quot;lowercase&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const L = '#C5F36A', W = '#F2F3F5', M = '#0E1220';
+const r = (x, y, w, h, rx, fill, stroke = 'none', sw = 0) => ({ x, y, w, h, rx, fill, stroke, sw });
+class Component extends DCLogic {
+  renderVals() {
+    const lc = (this.props.wordCase ?? 'lowercase') === 'lowercase';
+    const opts = [
+      { id: 'A', title: 'Focus', rec: true, desc: 'A focused tile: lime ring, ink gap, white tile.',
+        note: 'Literally the product’s core moment — the focus state — so the icon, the UI and the brand agree. Holds at 24 dp; the gap survives because it is 4 units wide in a 48 grid.',
+        shapes: [r(3.5, 10.5, 41, 27, 8, 'none', L, 3), r(10, 17, 28, 14, 3, W)],
+        shapesLight: [r(3.5, 10.5, 41, 27, 8, 'none', M, 3), r(10, 17, 28, 14, 3, M)] },
+      { id: 'B', title: 'Z', desc: 'A single geometric Z polygon.',
+        note: 'Most direct, strongest at tiny sizes, but generic — many Z brands exist. Works if you want the initial to carry recognition.',
+        shapes: [], shapesLight: [], poly: '9,9 39,9 39,16 21,32 39,32 39,39 9,39 9,32 27,16 9,16' },
+      { id: 'C', title: 'Grid', desc: 'Four tiles, one in focus.',
+        note: '“Your apps, one selected.” Very legible and calm; reads more like a generic launcher icon, so the wordmark does more of the work.',
+        shapes: [r(5, 5, 18, 18, 4, W), r(25, 5, 18, 18, 4, L), r(5, 25, 18, 18, 4, W), r(25, 25, 18, 18, 4, W)],
+        shapesLight: [r(5, 5, 18, 18, 4, '#9AA0AA'), r(25, 5, 18, 18, 4, M), r(5, 25, 18, 18, 4, '#9AA0AA'), r(25, 25, 18, 18, 4, '#9AA0AA')] },
+      { id: 'D', title: 'Shift', desc: 'Two offset bars — a Z implied by motion.',
+        note: 'Plays on “shift” and speed. Most abstract; distinctive, but the Z only appears once you’ve seen the wordmark beside it.',
+        shapes: [r(16, 11, 26, 10, 5, L), r(6, 27, 26, 10, 5, W)],
+        shapesLight: [r(16, 11, 26, 10, 5, M), r(6, 27, 26, 10, 5, '#9AA0AA')] },
+    ];
+    return {
+      word: lc ? 'zyft' : 'Zyft',
+      options: opts.map(o => ({ rec: false, poly: '', ...o })),
+      presets: [
+        ['Midnight', 'linear-gradient(160deg,#0A0D16 0%,#141B30 100%)'], ['Ocean', 'linear-gradient(160deg,#051419 0%,#0A2C3B 100%)'],
+        ['Sunset', 'linear-gradient(160deg,#170C10 0%,#33171C 100%)'], ['Forest', 'linear-gradient(160deg,#08130E 0%,#11281C 100%)'],
+        ['Graphite', 'linear-gradient(160deg,#0F1012 0%,#1E2024 100%)'], ['Plain', '#0D0E10'],
+      ].map(([name, bg]) => ({ name, bg })),
+    };
+  }
+}
+</script>
+</body>
+</html>

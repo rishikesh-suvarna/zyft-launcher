@@ -5,3 +5,4 @@ local.properties
 .idea/
 .tv-state/
 .kotlin/
+.DS_Store

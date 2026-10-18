@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500&display=swap">
+<style>body{margin:0;background:#060708;color:#F2F3F5;} a{color:#C5F36A;text-decoration:none;} a:hover{color:#E2FAB0;text-decoration:underline;}</style>
+</helmet>
+
+<div style="padding:96px;display:flex;flex-direction:column;gap:120px;font-family:'Google Sans','Google Sans Flex',system-ui,sans-serif;background:#060708;min-width:2048px;">
+
+<header style="display:flex;justify-content:space-between;align-items:flex-end;gap:48px;max-width:1984px;">
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div style="font-family:'Google Sans Code',monospace;font-size:14px;color:#8B919C;letter-spacing:0.08em;">ZYFT LAUNCHER · ANDROID TV / GOOGLE TV · UI v1</div>
+    <div style="font-size:64px;font-weight:500;letter-spacing:-0.02em;line-height:1;">Your apps. Nothing else.</div>
+    <div style="font-size:20px;color:#A3A9B4;max-width:900px;text-wrap:pretty;">Frames at 960×540 dp (1 dp = 1 px here). Content stays inside the 48/27 dp TV-safe area. In-app type is system Roboto; Google Sans is used only for the brand wordmark (shipped as vector paths) and this board.</div>
+  </div>
+  <a href="Zyft%20Logo.dc.html" style="font-size:18px;">Logo options →</a>
+</header>
+
+<section style="display:flex;flex-direction:column;gap:48px;">
+  <div style="font-size:32px;font-weight:500;">Screens &amp; states</div>
+  <div style="display:grid;grid-template-columns:960px 960px;gap:72px 64px;">
+
+    <!-- 01 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="01 Home 1080p" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#0A0D16 0%,#141B30 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:flex-end;gap:16px;">
+            <div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div>
+          </div>
+          <div style="margin:16px 0 12px;font-size:15px;font-weight:500;">Favorites</div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f1Fav }}" as="it" hint-placeholder-count="9"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+          <div style="margin:28px 0 12px;font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· A–Z</span></div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f1Apps }}" as="it" hint-placeholder-count="5"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">01</span><div><div style="font-size:20px;font-weight:500;">Home · 1080p · 5 columns · Midnight</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">Focus on a white banner (“tubeo”) — the 2 dp ink gap keeps the lime ring readable. The focused banner gets its name underneath; nothing else has captions. Fallback tile (Media Center) sits in the same grid.</div></div></figcaption>
+    </figure>
+
+    <!-- 02 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="02 Home 720p offline" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#0F1012 0%,#1E2024 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:flex-end;gap:16px;">
+            <div style="display:flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:14px;background:#3A2A0C;box-shadow:inset 0 0 0 1px rgba(255,181,71,0.45);"><span style="width:6px;height:6px;border-radius:3px;background:#FFB547;"></span><span style="font-size:13px;font-weight:500;color:#FFC46B;">No network</span></div>
+            <div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div>
+          </div>
+          <div style="margin:16px 0 12px;font-size:15px;font-weight:500;">Favorites</div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f2Fav }}" as="it" hint-placeholder-count="7"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,115px"></dc-import></sc-for>
+          </div>
+          <div style="margin:28px 0 12px;font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· Most used</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f2Apps }}" as="it" hint-placeholder-count="4"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,115px"></dc-import></sc-for>
+          </div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">02</span><div><div style="font-size:20px;font-weight:500;">Home · 720p · 4 columns · Graphite · offline</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">cols = 4 when screen width &lt; 1600 px, else 5. Tile width = (864 − 16·(cols−1)) / cols → 204×115 / 160×90 dp. Amber chip only when offline; it is never focusable. Focus on a fallback tile: its label is already visible, so no caption.</div></div></figcaption>
+    </figure>
+
+    <!-- 03 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="03 Move mode" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#170C10 0%,#33171C 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:flex-end;gap:16px;opacity:0.4;">
+            <div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div>
+          </div>
+          <div style="margin:16px 0 12px;font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Favorites</span><span style="color:#C5F36A;">· Moving “Beat”</span></div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f3Fav }}" as="it" hint-placeholder-count="9"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+          <div style="opacity:0.4;">
+            <div style="margin:28px 0 12px;font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· A–Z</span></div>
+            <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+              <sc-for list="{{ f1Apps }}" as="it" hint-placeholder-count="5"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:27px;display:flex;justify-content:center;">
+          <div style="display:flex;align-items:center;gap:12px;height:44px;padding:0 20px;border-radius:22px;background:#15171C;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);font-size:15px;">
+            <span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-size:13px;font-weight:500;">◀ ▶</span><span>Left / right to move</span>
+            <span style="color:#5B616C;">·</span>
+            <span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-size:13px;font-weight:500;">OK</span><span>finish</span>
+            <span style="color:#5B616C;">·</span>
+            <span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-size:13px;font-weight:500;">Back</span><span style="color:#A3A9B4;">cancel</span>
+          </div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">03</span><div><div style="font-size:20px;font-weight:500;">Move mode · Sunset</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">Lifted = scale 1.12 + translateY −6 dp + deeper shadow + side chevrons; everything else drops to 40 % alpha. Same lime as focus, so amber stays reserved for warnings. Badges renumber live as the tile swaps (150 ms translationX).</div></div></figcaption>
+    </figure>
+
+    <!-- 04 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="04 App options" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#0A0D16 0%,#141B30 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:flex-end;"><div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div></div>
+          <div style="margin:16px 0 12px;font-size:15px;font-weight:500;">Favorites</div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f4Fav }}" as="it" hint-placeholder-count="9"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
+        <div style="position:absolute;top:0;right:0;bottom:0;width:360px;background:#15171C;box-shadow:-1px 0 0 rgba(255,255,255,0.08);padding:27px 48px 27px 28px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;align-items:center;gap:14px;padding-top:12px;">
+            <div style="width:72px;height:40px;border-radius:6px;background:#F2F2EC;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#B3121B;flex:none;">News 24</div>
+            <div style="min-width:0;"><div style="font-size:20px;font-weight:500;">News 24</div><div style="font-size:13px;color:#8B919C;">In favorites · position 7</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="height:48px;display:flex;align-items:center;padding:0 16px;border-radius:8px;font-size:16px;font-weight:500;background:#C5F36A;color:#0B0D10;">Remove from favorites</div>
+            <div style="height:48px;display:flex;align-items:center;padding:0 16px;border-radius:8px;font-size:16px;">Move</div>
+            <div style="height:48px;display:flex;align-items:center;padding:0 16px;border-radius:8px;font-size:16px;">Hide</div>
+            <div style="height:48px;display:flex;align-items:center;padding:0 16px;border-radius:8px;font-size:16px;">App info</div>
+          </div>
+          <div style="margin-top:auto;font-size:13px;color:#8B919C;display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-weight:500;color:#F2F3F5;">Back</span>close</div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">04</span><div><div style="font-size:20px;font-weight:500;">App options · long-press OK or Menu</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">Right-side sheet, 360 dp, flat scrim (no blur). Focus wraps top↔bottom; Left or Back closes. First item adapts: “Add to favorites” for non-favorites. Focused row = solid lime fill, no scale.</div></div></figcaption>
+    </figure>
+
+    <!-- 05 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="05 Customize" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#051419 0%,#0A2C3B 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:flex-end;"><div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div></div>
+          <div style="margin:16px 0 12px;font-size:15px;font-weight:500;">Favorites</div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f5Fav }}" as="it" hint-placeholder-count="9"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;top:0;right:0;bottom:0;width:360px;background:#15171C;box-shadow:-1px 0 0 rgba(255,255,255,0.08);padding:27px 48px 27px 28px;box-sizing:border-box;display:flex;flex-direction:column;">
+          <div style="font-size:20px;font-weight:500;padding:4px 0 16px;">Customize</div>
+          <div style="font-size:13px;color:#8B919C;padding:0 0 6px;">Sort apps</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;color:#C5F36A;">A–Z<span style="width:14px;height:14px;border-radius:9px;border:2px solid #C5F36A;display:flex;align-items:center;justify-content:center;"><span style="width:6px;height:6px;border-radius:3px;background:#C5F36A;"></span></span></div>
+            <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;">Most used<span style="width:14px;height:14px;border-radius:9px;border:2px solid #5B616C;"></span></div>
+            <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;">Recently used<span style="width:14px;height:14px;border-radius:9px;border:2px solid #5B616C;"></span></div>
+          </div>
+          <div style="font-size:13px;color:#8B919C;padding:16px 0 10px;">Background</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+            <sc-for list="{{ presets }}" as="p" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="aspect-ratio:16/9;border-radius:6px;background:{{ p.bg }};box-shadow:{{ p.sh }};transform:{{ p.tf }};position:relative;">
+                  <sc-if value="{{ p.selected }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;right:5px;bottom:5px;width:8px;height:8px;border-radius:4px;background:#C5F36A;"></span></sc-if>
+                </div>
+                <div style="font-size:13px;color:{{ p.nameColor }};">{{ p.name }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:12px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;">Show hidden apps (3)<span style="width:34px;height:20px;border-radius:10px;background:#2A2E37;position:relative;"><span style="position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:7px;background:#A3A9B4;"></span></span></div>
+          <div style="margin-top:auto;font-size:13px;color:#8B919C;">Previewing Ocean · OK to apply</div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">05</span><div><div style="font-size:20px;font-weight:500;">Customize · live background preview</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">No scrim here — the home behind repaints with the focused preset (Ocean) so you judge it for real. Dot = current (Midnight). Back reverts unless OK was pressed. Sort radio is a plain list; OK selects.</div></div></figcaption>
+    </figure>
+
+    <!-- 06 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="06 Inputs" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#08130E 0%,#11281C 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· A–Z</span></div>
+            <div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div>
+          </div>
+          <div style="margin-top:28px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f6Grid }}" as="it" hint-placeholder-count="10"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);"></div>
+        <div style="position:absolute;top:0;right:0;bottom:0;width:360px;background:#15171C;box-shadow:-1px 0 0 rgba(255,255,255,0.08);padding:27px 48px 27px 28px;box-sizing:border-box;display:flex;flex-direction:column;">
+          <div style="font-size:20px;font-weight:500;padding:16px 0 20px;">Inputs</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="height:56px;display:flex;flex-direction:column;justify-content:center;padding:0 16px;border-radius:8px;"><div style="font-size:16px;">HDMI 1</div><div style="font-size:13px;color:#8B919C;">Game console</div></div>
+            <div style="height:56px;display:flex;flex-direction:column;justify-content:center;padding:0 16px;border-radius:8px;background:#C5F36A;color:#0B0D10;"><div style="font-size:16px;font-weight:500;">HDMI 2</div><div style="font-size:13px;color:#2E3A12;">Media box · signal</div></div>
+            <div style="height:56px;display:flex;flex-direction:column;justify-content:center;padding:0 16px;border-radius:8px;"><div style="font-size:16px;">HDMI 3</div><div style="font-size:13px;color:#8B919C;">No signal</div></div>
+            <div style="height:56px;display:flex;flex-direction:column;justify-content:center;padding:0 16px;border-radius:8px;"><div style="font-size:16px;">AV</div><div style="font-size:13px;color:#8B919C;">No signal</div></div>
+          </div>
+          <div style="margin-top:auto;font-size:13px;color:#8B919C;display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-weight:500;color:#F2F3F5;">OK</span>switch<span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-weight:500;color:#F2F3F5;margin-left:8px;">Back</span>close</div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">06</span><div><div style="font-size:20px;font-weight:500;">Inputs picker · Forest</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">Opened from the Inputs utility tile at the end of the grid. Same sheet, 56 dp two-line rows. Status text comes from TvInputManager; hide inputs the device doesn’t report rather than greying them.</div></div></figcaption>
+    </figure>
+
+    <!-- 07 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="07 First launch" style="position:relative;width:960px;height:540px;overflow:hidden;background:linear-gradient(160deg,#0A0D16 0%,#141B30 100%);font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:flex-end;"><div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div></div>
+          <div style="margin:16px 0 12px;font-size:15px;font-weight:500;">Favorites</div>
+          <div style="height:90px;border-radius:8px;border:1.5px dashed rgba(255,255,255,0.22);display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 24px;box-sizing:border-box;max-width:528px;">
+            <div style="font-size:16px;font-weight:500;">No favorites yet</div>
+            <div style="font-size:13px;color:#A3A9B4;">Hold OK on any app, then choose Add to favorites. Pinned apps get a number key.</div>
+          </div>
+          <div style="margin:28px 0 12px;font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· A–Z</span></div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f7Apps }}" as="it" hint-placeholder-count="10"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);"></div>
+        <div style="position:absolute;left:48px;right:48px;bottom:27px;background:#15171C;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);padding:20px 24px;display:flex;align-items:center;gap:32px;">
+          <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+            <div style="font-size:20px;font-weight:500;">Welcome to Zyft</div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:15px;color:#A3A9B4;">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-size:13px;font-weight:500;color:#F2F3F5;">Hold OK</span>pin or move</div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-size:13px;font-weight:500;color:#F2F3F5;">1–9</span>open a favorite</div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;background:#2A2E37;font-size:13px;font-weight:500;color:#F2F3F5;">Menu</span>app options</div>
+            </div>
+          </div>
+          <div style="height:44px;padding:0 24px;border-radius:8px;background:#C5F36A;color:#0B0D10;font-size:16px;font-weight:500;display:flex;align-items:center;box-shadow:0 0 0 2px #15171C, 0 0 0 5px #C5F36A;">Got it</div>
+        </div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">07</span><div><div style="font-size:20px;font-weight:500;">First launch · no favorites</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">One-time card, single focus target. After “Got it”, focus lands on the first app; the dashed empty slot stays (not focusable) until something is pinned. No wizard, no permissions screen.</div></div></figcaption>
+    </figure>
+
+    <!-- 08 -->
+    <figure style="margin:0;display:flex;flex-direction:column;gap:16px;">
+      <div data-screen-label="08 Many apps scrolled" style="position:relative;width:960px;height:540px;overflow:hidden;background:#0D0E10;font-family:Roboto,system-ui,sans-serif;color:#F2F3F5;">
+        <div style="position:absolute;inset:27px 48px;isolation:isolate;">
+          <div style="height:32px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· Most used</span></div>
+            <div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:20px;font-weight:500;">21:40</span></div>
+          </div>
+          <div style="margin-top:28px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:28px 16px;">
+            <sc-for list="{{ f8Grid }}" as="it" hint-placeholder-count="20"><dc-import name="ZyftTile" t="{{ it }}" hint-size="100%,90px"></dc-import></sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:96px;background:linear-gradient(180deg,rgba(13,14,16,0) 0%,#0D0E10 85%);"></div>
+        <div style="position:absolute;right:24px;top:87px;width:3px;height:380px;border-radius:2px;background:rgba(255,255,255,0.1);"><div style="position:absolute;left:0;top:150px;width:3px;height:56px;border-radius:2px;background:#A3A9B4;"></div></div>
+        <sc-if value="{{ showSafe }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:27px 48px;outline:1px dashed #FF5FA2;pointer-events:none;"></div></sc-if>
+      </div>
+      <figcaption style="display:flex;gap:16px;align-items:baseline;"><span style="font-family:'Google Sans Code',monospace;font-size:14px;color:#C5F36A;">08</span><div><div style="font-size:20px;font-weight:500;">Many apps · scrolled · Plain</div><div style="font-size:15px;color:#8B919C;margin-top:4px;max-width:880px;text-wrap:pretty;">Header collapses to one row: sticky section label left, time right (date drops). Scroll is row-snapped, 150 ms; focused row is held as the 2nd visible row. 3 dp scroll indicator only while scrolling. Back = jump to top. Number keys still open favorites.</div></div></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:40px;max-width:1984px;">
+  <div style="font-size:32px;font-weight:500;">Tokens</div>
+  <div style="display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:48px;align-items:start;">
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:15px;color:#8B919C;">Color</div>
+      <sc-for list="{{ colorTokens }}" as="c" hint-placeholder-count="18">
+        <div style="display:grid;grid-template-columns:40px 220px 1fr;gap:16px;align-items:center;padding:6px 0;border-bottom:1px solid #16181C;">
+          <div style="width:40px;height:26px;border-radius:4px;background:{{ c.v }};box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);"></div>
+          <div style="font-family:'Google Sans Code',monospace;font-size:14px;">{{ c.k }}</div>
+          <div style="font-family:'Google Sans Code',monospace;font-size:14px;color:#A3A9B4;">{{ c.hex }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:15px;color:#8B919C;">Type · Roboto (system)</div>
+      <sc-for list="{{ typeTokens }}" as="ty" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:baseline;padding:8px 0;border-bottom:1px solid #16181C;">
+          <div style="font-family:'Google Sans Code',monospace;font-size:14px;">{{ ty.k }}</div>
+          <div style="font-family:Roboto,sans-serif;font-size:{{ ty.px }};font-weight:{{ ty.w }};">{{ ty.spec }}</div>
+        </div>
+      </sc-for>
+      <div style="font-size:15px;color:#8B919C;margin-top:24px;">Motion · transforms/alpha only</div>
+      <sc-for list="{{ motionTokens }}" as="m" hint-placeholder-count="7">
+        <div style="display:grid;grid-template-columns:150px 1fr;gap:16px;padding:6px 0;border-bottom:1px solid #16181C;font-family:'Google Sans Code',monospace;font-size:14px;"><div>{{ m.k }}</div><div style="color:#A3A9B4;">{{ m.v }}</div></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <sc-for list="{{ dimTokens }}" as="g" hint-placeholder-count="4">
+        <div style="font-size:15px;color:#8B919C;margin-top:8px;">{{ g.title }}</div>
+        <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:150px 1fr;gap:16px;padding:6px 0;border-bottom:1px solid #16181C;font-family:'Google Sans Code',monospace;font-size:14px;"><div>{{ r.k }}</div><div style="color:#A3A9B4;">{{ r.v }}</div></div>
+        </sc-for>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:40px;max-width:1984px;">
+  <div style="font-size:32px;font-weight:500;">Components</div>
+  <div style="font-size:15px;color:#8B919C;">Tile · 168×94 dp reference size · radius 8</div>
+  <div style="display:flex;gap:56px;flex-wrap:wrap;padding:24px 32px 56px;background:#0A0D16;border-radius:8px;font-family:Roboto,sans-serif;">
+    <sc-for list="{{ tileStates }}" as="s" hint-placeholder-count="7">
+      <div style="width:168px;display:flex;flex-direction:column;gap:40px;">
+        <dc-import name="ZyftTile" t="{{ s.t }}" hint-size="168px,94px"></dc-import>
+        <div><div style="font-size:15px;font-weight:500;color:#F2F3F5;">{{ s.name }}</div><div style="font-size:13px;color:#8B919C;margin-top:4px;line-height:18px;">{{ s.spec }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;font-family:Roboto,sans-serif;">
+    <div style="background:#0A0D16;border-radius:8px;padding:28px;display:flex;flex-direction:column;gap:20px;">
+      <div style="font-family:'Google Sans',sans-serif;font-size:15px;color:#8B919C;">Number badge</div>
+      <div style="display:flex;align-items:center;gap:20px;"><div style="width:60px;height:60px;border-radius:30px;background:rgba(11,13,16,0.88);box-shadow:inset 0 0 0 3px rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:39px;font-weight:500;">7</div><div style="font-size:13px;color:#A3A9B4;line-height:20px;">20 dp circle · 13 sp Medium<br>#0B0D10 @ 88 % + 1 dp white @ 18 %<br>inset 6 dp top-left · 1–9 only</div></div>
+    </div>
+    <div style="background:#0A0D16;border-radius:8px;padding:28px;display:flex;flex-direction:column;gap:20px;">
+      <div style="font-family:'Google Sans',sans-serif;font-size:15px;color:#8B919C;">Section label</div>
+      <div style="font-size:15px;font-weight:500;display:flex;gap:6px;"><span>Apps</span><span style="color:#A3A9B4;">· Most used</span></div>
+      <div style="font-size:13px;color:#A3A9B4;line-height:20px;">15 sp Medium · name primary, sort secondary · 28 dp above, 12 dp below · sticky when scrolled</div>
+    </div>
+    <div style="background:#0A0D16;border-radius:8px;padding:28px;display:flex;flex-direction:column;gap:20px;">
+      <div style="font-family:'Google Sans',sans-serif;font-size:15px;color:#8B919C;">Header + status chip</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:14px;background:#3A2A0C;box-shadow:inset 0 0 0 1px rgba(255,181,71,0.45);"><span style="width:6px;height:6px;border-radius:3px;background:#FFB547;"></span><span style="font-size:13px;font-weight:500;color:#FFC46B;">Wi-Fi needs sign-in</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px;"><span style="font-size:15px;color:#A3A9B4;">Sun 18 Oct</span><span style="font-size:20px;font-weight:500;">21:40</span></div>
+      </div>
+      <div style="font-size:13px;color:#A3A9B4;line-height:20px;">32 dp row, right-aligned · chip 28 dp, radius 14, 6 dp dot · not focusable</div>
+    </div>
+    <div style="background:#0A0D16;border-radius:8px;padding:28px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-family:'Google Sans',sans-serif;font-size:15px;color:#8B919C;margin-bottom:8px;">Modal list item · 48 dp (56 two-line)</div>
+      <div style="background:#15171C;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px;">
+        <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;">Normal</div>
+        <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;font-weight:500;background:#C5F36A;color:#0B0D10;">Focused</div>
+        <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;font-size:16px;color:#C5F36A;">Selected<span style="width:14px;height:14px;border-radius:9px;border:2px solid #C5F36A;display:flex;align-items:center;justify-content:center;"><span style="width:6px;height:6px;border-radius:3px;background:#C5F36A;"></span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px;max-width:1984px;">
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:26px;font-weight:500;">Focus treatment</div>
+    <div style="font-size:17px;line-height:27px;color:#A3A9B4;text-wrap:pretty;">A white 3 dp ring disappears on white banners and fights bright ones. Replace it with a <span style="color:#F2F3F5;">double stroke: 2 dp ink gap (#0B0D10) + 3 dp lime ring</span>, scale 1.06 and 8 dp elevation. The ink gap guarantees separation from any artwork; the lime guarantees separation from any background. One GradientDrawable with two strokes (or a 9-patch-free LayerDrawable) — no shader cost. The focused banner also gets its name below, so banner-only apps are still identifiable. Toggle “Focus style” in Tweaks to compare against the current treatment.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:26px;font-weight:500;">Accent · Zyft Lime #C5F36A</div>
+    <div style="font-size:17px;line-height:27px;color:#A3A9B4;text-wrap:pretty;">Hue ~95° sits far from the red (Netflix-style, YouTube) and blue (Prime-style) that dominate banners, and it isn’t white. Very high luminance gives ≥ 11:1 against the lightest end of every preset (Ocean #0A2C3B is the worst case) and 15:1 for ink text on lime fills. It reads as “signal LED”, which fits the remote-control brief. Amber #FFB547 is reserved for status only.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:26px;font-weight:500;">What I’d cut</div>
+    <div style="font-size:17px;line-height:27px;color:#A3A9B4;text-wrap:pretty;">· Wordmark in the header — the launcher is the brand; time is enough.<br>· “Recently used” sort — overlaps “Most used” in practice.<br>· Captions on unfocused tiles.<br>· Panel shadows/elevation — a flat scrim is cheaper and clearer.<br>· Separate move-mode color (amber outline).<br>· Seconds, weather, any home-screen widgets.</div>
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showSafeArea&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;focusStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Proposed&quot;,&quot;Current&quot;],&quot;default&quot;:&quot;Proposed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const A = '#C5F36A', INK = '#0B0D10';
+const B = {
+  reel: { name: 'Reel', bg: '#D3262E', fg: '#FFFFFF' },
+  tubeo: { name: 'tubeo', bg: '#FFFFFF', fg: '#E1251B' },
+  primo: { name: 'primo', bg: '#0E6FC4', fg: '#FFFFFF' },
+  beat: { name: 'Beat', bg: '#121212', fg: '#38D97A' },
+  arena: { name: 'ARENA', bg: '#1B2F7A', fg: '#F9C80E' },
+  kids: { name: 'Kids+', bg: '#FFD93B', fg: '#2A1B5C' },
+  news: { name: 'News 24', bg: '#F2F2EC', fg: '#B3121B' },
+  kino: { name: 'Kino', bg: '#3A0D4F', fg: '#F5C2FF' },
+};
+const F = {
+  media: { label: 'Media Center', ic: '#2F6FEB', l: 'M' },
+  files: { label: 'File Manager', ic: '#E08A1E', l: 'F' },
+  browser: { label: 'Web Browser Plus Edition', ic: '#1FA37A', l: 'W' },
+  weather: { label: 'Weather', ic: '#4C8DF6', l: 'W' },
+  photos: { label: 'Photos', ic: '#D9466F', l: 'P' },
+  dl: { label: 'Downloader', ic: '#7A5AF8', l: 'D' },
+  vpn: { label: 'Secure VPN', ic: '#4A505C', l: 'V' },
+  radio: { label: 'Radio Garden', ic: '#16A34A', l: 'R' },
+};
+const U = {
+  in: { util: 'in', label: 'Inputs' },
+  set: { util: 'set', label: 'Settings' },
+  cus: { util: 'cus', label: 'Customize' },
+};
+const PRESETS = [
+  ['Midnight', 'linear-gradient(160deg,#0A0D16 0%,#141B30 100%)'],
+  ['Ocean', 'linear-gradient(160deg,#051419 0%,#0A2C3B 100%)'],
+  ['Sunset', 'linear-gradient(160deg,#170C10 0%,#33171C 100%)'],
+  ['Forest', 'linear-gradient(160deg,#08130E 0%,#11281C 100%)'],
+  ['Graphite', 'linear-gradient(160deg,#0F1012 0%,#1E2024 100%)'],
+  ['Plain', '#0D0E10'],
+];
+
+class Component extends DCLogic {
+  t(d, o = {}) {
+    const cur = (this.props.focusStyle ?? 'Proposed') === 'Current';
+    const isBanner = !d.ic && !d.util, isApp = !!d.ic, isUtil = !!d.util;
+    const base = isUtil ? 'inset 0 0 0 1px rgba(255,255,255,0.12)' : isApp ? 'inset 0 0 0 1px rgba(255,255,255,0.06)' : '';
+    const join = (s) => (base ? base + ', ' : '') + s;
+    const ring = cur ? '0 0 0 3px #FFFFFF' : `0 0 0 2px ${INK}, 0 0 0 5px ${A}, 0 10px 24px rgba(0,0,0,0.6)`;
+    let tf = 'none', sh = base || 'none', op = 1, z = 1;
+    if (o.focus) { tf = cur ? 'scale(1.08)' : 'scale(1.06)'; sh = join(ring); z = 3; }
+    if (o.press) { tf = 'scale(0.98)'; sh = join(ring); z = 3; }
+    if (o.move) {
+      tf = 'translateY(-6px) scale(1.12)'; z = 4;
+      sh = join(cur ? '0 0 0 3px #FFB547' : `0 0 0 2px ${INK}, 0 0 0 5px ${A}, 0 18px 36px rgba(0,0,0,0.8)`);
+    }
+    if (o.dim) op = 0.4;
+    return {
+      tf, sh, op, z, isBanner, isApp, isUtil,
+      isIn: d.util === 'in', isSet: d.util === 'set', isCus: d.util === 'cus',
+      bg: isBanner ? d.bg : isApp ? '#1D2027' : '#14161B',
+      fg: d.fg, name: d.name, ic: d.ic, l: d.l, label: d.label,
+      badge: o.badge || '', hasBadge: !!o.badge,
+      showCap: !!o.focus && isBanner && !cur, capText: d.name,
+      moving: !!o.move && !cur,
+    };
+  }
+  renderVals() {
+    const t = (d, o) => this.t(d, o);
+    const favs = [B.reel, B.tubeo, B.primo, B.beat, B.arena, B.kids, B.news, F.media, B.kino];
+    const fav = (fi, extra = () => ({})) => favs.map((d, i) => t(d, { badge: String(i + 1), focus: i === fi, ...extra(i) }));
+    const favs2 = [B.reel, B.tubeo, B.primo, B.beat, F.media, B.news, B.kids];
+    const apps1 = [F.browser, F.dl, F.files, F.photos, F.radio];
+    const many = [B.tubeo, B.reel, F.media, B.primo, F.browser, B.beat, B.arena, F.files, B.kids, F.photos, B.news, F.dl, F.weather, B.kino, F.radio, F.vpn, B.reel, F.media, B.primo, F.files];
+    const cur = (this.props.focusStyle ?? 'Proposed') === 'Current';
+    const ring = `0 0 0 2px #15171C, 0 0 0 5px ${A}`;
+    return {
+      showSafe: this.props.showSafeArea ?? false,
+      f1Fav: fav(1),
+      f1Apps: apps1.map(d => t(d, {})),
+      f2Fav: favs2.map((d, i) => t(d, { badge: String(i + 1), focus: i === 4 })),
+      f2Apps: [B.arena, F.browser, F.dl, B.kino].map(d => t(d, {})),
+      f3Fav: fav(-1, i => i === 3 ? { move: true } : { dim: true }),
+      f4Fav: fav(6),
+      f5Fav: fav(-1),
+      f6Grid: [F.photos, F.radio, F.vpn, F.weather, B.kino, F.files, F.dl, U.in, U.set, U.cus].map(d => t(d, {})),
+      f7Apps: [B.arena, B.beat, F.browser, F.dl, F.files, B.kids, B.kino, F.media, B.news, F.photos].map(d => t(d, {})),
+      f8Grid: many.map((d, i) => t(d, { focus: i === 7 })),
+      presets: PRESETS.map(([name, bg]) => ({
+        name, bg,
+        selected: name === 'Midnight',
+        sh: name === 'Ocean' ? ring : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+        tf: name === 'Ocean' ? 'scale(1.06)' : 'none',
+        nameColor: name === 'Ocean' ? '#F2F3F5' : '#A3A9B4',
+      })),
+      tileStates: [
+        { name: 'Banner · normal', spec: 'App’s 320×180 art, center-crop, no overlay', t: t(B.primo, { badge: '3' }) },
+        { name: 'Fallback · normal', spec: '#1D2027 + 1 dp white 6 %; icon 40 dp, label 15 sp, 1 line ellipsized', t: t(F.browser, {}) },
+        { name: 'Focused', spec: cur ? 'Current: scale 1.08 + 3 dp white' : 'scale 1.06 · 2 dp ink gap + 3 dp lime · 8 dp elev · caption', t: t(B.tubeo, { focus: true, badge: '2' }) },
+        { name: 'Pressed', spec: 'scale 0.98 for 100 ms, ring kept', t: t(B.reel, { press: true, badge: '1' }) },
+        { name: 'Moving', spec: 'scale 1.12, y −6 dp, 16 dp elev, chevrons; others 40 %', t: t(B.beat, { move: true, badge: '4' }) },
+        { name: 'Utility · normal', spec: '#14161B + 1 dp white 12 %; outline icon 28 dp', t: t(U.in, {}) },
+        { name: 'Utility · focused', spec: 'Same ring as app tiles', t: t(U.cus, { focus: true }) },
+      ],
+      colorTokens: [
+        ...PRESETS.map(([n, bg]) => ({ k: 'bg.' + n.toLowerCase(), v: bg, hex: bg.includes('#') ? (bg.match(/#[0-9A-F]{6}/gi) || []).join(' → ') : bg })),
+        { k: 'surface.tile', v: '#1D2027', hex: '#1D2027' },
+        { k: 'surface.utility', v: '#14161B', hex: '#14161B' },
+        { k: 'surface.sheet', v: '#15171C', hex: '#15171C' },
+        { k: 'surface.key', v: '#2A2E37', hex: '#2A2E37' },
+        { k: 'scrim', v: 'rgba(0,0,0,0.6)', hex: '#99000000' },
+        { k: 'stroke.hairline', v: 'rgba(255,255,255,0.12)', hex: '#1FFFFFFF' },
+        { k: 'text.primary', v: '#F2F3F5', hex: '#F2F3F5' },
+        { k: 'text.secondary', v: '#A3A9B4', hex: '#A3A9B4 · ≥ 6.8:1' },
+        { k: 'text.tertiary', v: '#8B919C', hex: '#8B919C · 13 sp+ only' },
+        { k: 'accent / focus.ring', v: A, hex: '#C5F36A' },
+        { k: 'on-accent / focus.gap', v: INK, hex: '#0B0D10' },
+        { k: 'warning', v: '#FFB547', hex: '#FFB547' },
+        { k: 'warning.surface', v: '#3A2A0C', hex: '#3A2A0C' },
+        { k: 'warning.text', v: '#FFC46B', hex: '#FFC46B' },
+      ],
+      typeTokens: [
+        { k: 'clock', px: '20px', w: 500, spec: '20 sp Medium · 21:40' },
+        { k: 'sheet.title', px: '20px', w: 500, spec: '20 sp Medium' },
+        { k: 'list.item', px: '16px', w: 400, spec: '16 sp Regular (focused 500)' },
+        { k: 'tile.label', px: '15px', w: 500, spec: '15 sp Medium' },
+        { k: 'section', px: '15px', w: 500, spec: '15 sp Medium' },
+        { k: 'date', px: '15px', w: 400, spec: '15 sp Regular' },
+        { k: 'body / hint', px: '13px', w: 400, spec: '13 sp Regular · 18 lh' },
+        { k: 'badge / chip', px: '13px', w: 500, spec: '13 sp Medium' },
+      ],
+      motionTokens: [
+        { k: 'focus.in', v: '120 ms ease-out · scale 1→1.06, ring α 0→1' },
+        { k: 'focus.out', v: '100 ms ease-out' },
+        { k: 'press', v: '100 ms · scale 0.98' },
+        { k: 'move.lift', v: '150 ms · scale 1.12, y −6' },
+        { k: 'move.swap', v: '150 ms · translationX' },
+        { k: 'sheet.in', v: '150 ms · x +24→0, α 0→1' },
+        { k: 'scroll.row', v: '150 ms · row-snapped' },
+      ],
+      dimTokens: [
+        { title: 'Spacing · 4 dp grid', rows: [
+          { k: 'safe.x / safe.y', v: '48 / 27' }, { k: 'grid.gap.col', v: '16' }, { k: 'grid.gap.row', v: '28 (fits caption)' },
+          { k: 'section.top / bottom', v: '28 / 12' }, { k: 'scale', v: '4 8 12 16 20 24 28 32 48' }, { k: 'sheet.width', v: '360' } ] },
+        { title: 'Radius', rows: [
+          { k: 'tile / list / key', v: '8 / 8 / 6' }, { k: 'icon / swatch', v: '10 / 6' }, { k: 'badge / chip', v: 'full (10 / 14)' }, { k: 'card', v: '12' } ] },
+        { title: 'Stroke', rows: [
+          { k: 'focus.gap + ring', v: '2 + 3' }, { k: 'hairline', v: '1' }, { k: 'radio', v: '2' }, { k: 'empty slot', v: '1.5 dashed 6/4' } ] },
+        { title: 'Elevation (translationZ)', rows: [
+          { k: 'tile', v: '0' }, { k: 'tile.focused', v: '8' }, { k: 'tile.moving', v: '16' }, { k: 'sheet', v: '0 · scrim instead' } ] },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

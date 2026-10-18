@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Utility icon from design/ZyftTile.dc.html: four tiles, two filled. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp" android:height="28dp" android:viewportWidth="28" android:viewportHeight="28">
+    <path android:fillColor="@color/icon_utility"
+        android:pathData="M6,4 H11 A2,2 0 0 1 13,6 V11 A2,2 0 0 1 11,13 H6 A2,2 0 0 1 4,11 V6 A2,2 0 0 1 6,4 Z" />
+    <path android:strokeColor="@color/icon_utility" android:strokeWidth="2"
+        android:pathData="M17,4 H22 A2,2 0 0 1 24,6 V11 A2,2 0 0 1 22,13 H17 A2,2 0 0 1 15,11 V6 A2,2 0 0 1 17,4 Z" />
+    <path android:strokeColor="@color/icon_utility" android:strokeWidth="2"
+        android:pathData="M6,15 H11 A2,2 0 0 1 13,17 V22 A2,2 0 0 1 11,24 H6 A2,2 0 0 1 4,22 V17 A2,2 0 0 1 6,15 Z" />
+    <path android:fillColor="@color/icon_utility"
+        android:pathData="M17,15 H22 A2,2 0 0 1 24,17 V22 A2,2 0 0 1 22,24 H17 A2,2 0 0 1 15,22 V17 A2,2 0 0 1 17,15 Z" />
+</vector>

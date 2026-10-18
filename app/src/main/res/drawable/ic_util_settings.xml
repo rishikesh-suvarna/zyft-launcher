@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Utility icon from design/ZyftTile.dc.html: ring with a centre dot. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp" android:height="28dp" android:viewportWidth="28" android:viewportHeight="28">
+    <path android:strokeColor="@color/icon_utility" android:strokeWidth="2"
+        android:pathData="M14,5 A9,9 0 1 1 14,23 A9,9 0 1 1 14,5 Z" />
+    <path android:fillColor="@color/icon_utility"
+        android:pathData="M14,11 A3,3 0 1 1 14,17 A3,3 0 1 1 14,11 Z" />
+</vector>

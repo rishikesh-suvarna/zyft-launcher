@@ -7,7 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.media.tv.TvContract
 import android.net.ConnectivityManager
 import android.net.Network
@@ -17,16 +17,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.text.TextUtils
 import android.text.format.DateFormat
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -45,12 +41,15 @@ class MainActivity : Activity() {
     private lateinit var scroll: ScrollView
     private lateinit var clock: TextView
     private lateinit var date: TextView
-    private lateinit var networkStatus: TextView
+    private lateinit var statusChip: LinearLayout
+    private lateinit var statusText: TextView
     private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private lateinit var favoritesGrid: LinearLayout
     private lateinit var favoritesLabel: TextView
     private lateinit var appsLabel: TextView
     private lateinit var appsGrid: LinearLayout
+    private lateinit var emptyFavorites: View
+    private lateinit var metrics: GridMetrics
 
     private var apps: List<AppEntry> = emptyList()
     private var visibleFavorites: List<AppEntry> = emptyList()
@@ -80,6 +79,7 @@ class MainActivity : Activity() {
         prefs = LauncherPrefs(this)
         repository = AppRepository(packageManager, packageName)
         applyBackdrop()
+        metrics = resources.displayMetrics.let { gridMetrics(it.widthPixels, it.density) }
         setContentView(buildLayout())
 
         registerSystemReceiver(packageReceiver, IntentFilter().apply {
@@ -191,13 +191,13 @@ class MainActivity : Activity() {
         val sortMode = prefs.sortMode
         val order = comparatorFor<AppEntry>(sortMode, { it.label }, { prefs.usage(it.packageName) })
         val arranged = arrange(apps, prefs.favorites, hidden, { it.packageName }, order)
-        appsLabel.text = "Apps  ·  ${sortMode.title}"
+        appsLabel.text = twoTone("Apps", sortMode.title)
 
         visibleFavorites = arranged.favorites
         fillGrid(favoritesGrid, arranged.favorites.mapIndexed { index, app ->
             appTile(app, number = (index + 1).takeIf { it <= MAX_NUMBERED_FAVORITES })
         })
-        favoritesLabel.visibility = if (arranged.favorites.isEmpty()) View.GONE else View.VISIBLE
+        emptyFavorites.visibility = if (arranged.favorites.isEmpty()) View.VISIBLE else View.GONE
         favoritesLabel.text = if (movingKey != null) "Favorites  ·  Left / right to move, OK to finish" else "Favorites"
 
         fillGrid(appsGrid, arranged.others.map(::appTile) + systemTiles())
@@ -213,48 +213,47 @@ class MainActivity : Activity() {
     // region Layout
 
     private fun buildLayout(): View {
-        clock = text(sizeSp = 22f, color = R.color.text_primary)
-        networkStatus = text(sizeSp = 16f, color = R.color.moving).apply {
-            visibility = View.GONE
-            setPadding(0, 0, dp(18), 0)
-        }
-        date = text(sizeSp = 16f, color = R.color.text_secondary).apply {
-            setPadding(0, 0, dp(14), 0)
-        }
-        val header = LinearLayout(this).apply {
+        statusText = label(R.dimen.type_badge, R.color.warning_text, medium = true)
+        statusChip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))
-            addView(networkStatus)
-            addView(date)
+            visibility = View.GONE
+            setPadding(dp(12), 0, dp(12), 0)
+            background = roundedFill(R.color.warning_surface, R.dimen.radius_card, R.color.warning_stroke).apply {
+                cornerRadius = dp(14).toFloat()
+            }
+            addView(View(context).apply {
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(getColor(R.color.warning)) }
+            }, LinearLayout.LayoutParams(dp(6), dp(6)).apply { marginEnd = dp(8) })
+            addView(statusText)
+        }
+        date = label(R.dimen.type_date, R.color.text_secondary)
+        clock = label(R.dimen.type_clock, R.color.text_primary, medium = true)
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            addView(statusChip, LinearLayout.LayoutParams(WRAP_CONTENT, dp(28)).apply { marginEnd = dp(16) })
+            addView(date, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginEnd = dp(12) })
             addView(clock)
         }
 
-        favoritesLabel = sectionLabel("Favorites")
-        // Wraps like the app grid instead of scrolling sideways, so no tile is ever cut off.
-        favoritesGrid = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            clipChildren = false
-        }
-
-        appsGrid = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            clipChildren = false
-        }
+        favoritesLabel = sectionLabel()
+        favoritesGrid = grid()
+        emptyFavorites = emptyFavoritesSlot()
+        appsLabel = sectionLabel()
+        appsGrid = grid()
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             clipChildren = false
-            // Let the focused tile's scale-up spill into the screen margin instead of being cut off.
+            // Let the focused tile's ring and scale spill into the safe-area margin.
             clipToPadding = false
-            val h = dimen(R.dimen.screen_padding_h)
-            val v = dimen(R.dimen.screen_padding_v)
-            setPadding(h, v, h, v)
-            addView(header)
-            addView(favoritesLabel)
+            setPadding(px(R.dimen.safe_x), px(R.dimen.safe_y), px(R.dimen.safe_x), px(R.dimen.safe_y))
+            addView(header, LinearLayout.LayoutParams(MATCH_PARENT, px(R.dimen.header_height)))
+            addView(favoritesLabel, sectionParams(top = px(R.dimen.favorites_top)))
+            addView(emptyFavorites)
             addView(favoritesGrid)
-            appsLabel = sectionLabel("Apps")
-            addView(appsLabel)
+            addView(appsLabel, sectionParams(top = px(R.dimen.section_top)))
             addView(appsGrid)
         }
 
@@ -267,96 +266,68 @@ class MainActivity : Activity() {
         return scroll
     }
 
+    private fun sectionLabel() = label(R.dimen.type_section, R.color.text_primary, medium = true)
+
+    private fun sectionParams(top: Int) = LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+        topMargin = top
+        bottomMargin = px(R.dimen.section_bottom)
+    }
+
+    private fun grid() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        clipChildren = false
+        clipToPadding = false
+    }
+
+    /** Dashed, non-focusable placeholder that teaches pinning while there are no favorites. */
+    private fun emptyFavoritesSlot() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER_VERTICAL
+        visibility = View.GONE
+        setPadding(dp(24), 0, dp(24), 0)
+        background = GradientDrawable().apply {
+            cornerRadius = resources.getDimension(R.dimen.radius_tile)
+            setStroke(dp(1.5f), getColor(R.color.stroke_empty), dp(6).toFloat(), dp(4).toFloat())
+        }
+        addView(label(R.dimen.type_list_item, R.color.text_primary, medium = true, text = "No favorites yet"))
+        addView(label(R.dimen.type_body, R.color.text_secondary,
+            text = "Hold OK on any app, then choose Add to favorites. Pinned apps get a number key.").apply {
+            setPadding(0, dp(4), 0, 0)
+        })
+        layoutParams = LinearLayout.LayoutParams(
+            minOf(px(R.dimen.empty_slot_max_width), resources.displayMetrics.widthPixels - 2 * px(R.dimen.safe_x)),
+            dp(metrics.tileHeightDp),
+        )
+    }
+
     /** [number] badges a favorite with its remote shortcut key. */
     private fun appTile(app: AppEntry, number: Int? = null): View {
-        val content = app.banner?.let(::bannerView) ?: iconWithLabel(app.icon, app.label)
-        val tile = tile(content, tag = app, onClick = { launch(app) }, onLongClick = { showAppMenu(app) })
-        number?.let { (tile as FrameLayout).addView(numberBadge(it)) }
-        if (app.packageName == movingKey) tile.setBackgroundResource(R.drawable.tile_moving)
+        val banner = app.banner
+        val tile = if (banner != null) {
+            TileView(this, TileView.Kind.BANNER).apply { setBanner(banner); caption = app.label }
+        } else {
+            TileView(this, TileView.Kind.APP).apply { setIconAndLabel(app.icon, app.label, APP_ICON_DP) }
+        }
+        number?.let(tile::setBadge)
+        tile.tag = app
+        tile.setOnClickListener { launch(app) }
+        tile.setOnLongClickListener { showAppMenu(app); true }
+        if (app.packageName == movingKey) tile.isMoving = true
         return tile
     }
 
     private fun systemTiles(): List<View> = listOf(
-        tile(
-            iconWithLabel(getDrawable(android.R.drawable.ic_menu_view), "Inputs"),
-            tag = TILE_INPUTS,
-            onClick = ::showInputs,
-        ),
-        tile(
-            iconWithLabel(getDrawable(android.R.drawable.ic_menu_preferences), "Settings"),
-            tag = TILE_SETTINGS,
-            onClick = { safeStart(Intent(Settings.ACTION_SETTINGS)) },
-        ),
-        tile(
-            iconWithLabel(getDrawable(android.R.drawable.ic_menu_edit), "Customize"),
-            tag = TILE_CUSTOMIZE,
-            onClick = ::showCustomizeMenu,
-        ),
+        utilityTile(R.drawable.ic_util_inputs, "Inputs", TILE_INPUTS, ::showInputs),
+        utilityTile(R.drawable.ic_util_settings, "Settings", TILE_SETTINGS) { safeStart(Intent(Settings.ACTION_SETTINGS)) },
+        utilityTile(R.drawable.ic_util_customize, "Customize", TILE_CUSTOMIZE, ::showCustomizeMenu),
     )
 
-    private fun tile(
-        content: View,
-        tag: Any? = null,
-        onClick: () -> Unit,
-        onLongClick: (() -> Unit)? = null,
-    ): View = FrameLayout(this).apply {
-        this.tag = tag
-        isFocusable = true
-        isClickable = true
-        setBackgroundResource(R.drawable.tile_background)
-        clipToOutline = true
-        val pad = dp(3)
-        setPadding(pad, pad, pad, pad)
-        addView(content, MATCH_PARENT, MATCH_PARENT)
-        layoutParams = LinearLayout.LayoutParams(dimen(R.dimen.tile_width), dimen(R.dimen.tile_height)).apply {
-            val gap = dimen(R.dimen.tile_gap)
-            setMargins(0, gap / 2, gap, gap / 2)
+    private fun utilityTile(iconRes: Int, label: String, key: String, onClick: () -> Unit) =
+        TileView(this, TileView.Kind.UTILITY).apply {
+            setIconAndLabel(getDrawable(iconRes), label, UTILITY_ICON_DP)
+            tag = key
+            setOnClickListener { onClick() }
         }
-        setOnClickListener { onClick() }
-        onLongClick?.let { handler -> setOnLongClickListener { handler(); true } }
-        setOnFocusChangeListener { view, hasFocus ->
-            val scale = if (hasFocus) FOCUSED_SCALE else 1f
-            view.animate().scaleX(scale).scaleY(scale).setDuration(FOCUS_ANIM_MS).start()
-            view.elevation = if (hasFocus) dp(8).toFloat() else 0f
-        }
-    }
-
-    private fun numberBadge(number: Int) = text(sizeSp = 11f, color = R.color.text_primary).apply {
-        text = number.toString()
-        gravity = Gravity.CENTER
-        setBackgroundResource(R.drawable.number_badge)
-        layoutParams = FrameLayout.LayoutParams(dp(20), dp(20), Gravity.TOP or Gravity.START).apply {
-            setMargins(dp(4), dp(4), 0, 0)
-        }
-    }
-
-    private fun bannerView(banner: Drawable) = ImageView(this).apply {
-        setImageDrawable(banner)
-        scaleType = ImageView.ScaleType.FIT_CENTER
-    }
-
-    private fun iconWithLabel(icon: Drawable?, label: String) = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        gravity = Gravity.CENTER
-        addView(ImageView(context).apply { setImageDrawable(icon) }, LinearLayout.LayoutParams(dp(40), dp(40)))
-        addView(text(sizeSp = 13f, color = R.color.text_primary).apply {
-            text = label
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            gravity = Gravity.CENTER
-            setPadding(dp(6), dp(6), dp(6), 0)
-        })
-    }
-
-    private fun sectionLabel(label: String) = text(sizeSp = 15f, color = R.color.text_secondary).apply {
-        text = label
-        setPadding(0, dp(18), 0, dp(6))
-    }
-
-    private fun text(sizeSp: Float, color: Int) = TextView(this).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
-        setTextColor(getColor(color))
-    }
 
     // endregion
 
@@ -476,8 +447,8 @@ class MainActivity : Activity() {
 
     /** Network callbacks arrive on a binder thread. */
     private fun showNetworkWarning(warning: NetworkWarning?) = runOnUiThread {
-        networkStatus.text = warning?.message.orEmpty()
-        networkStatus.visibility = if (warning == null) View.GONE else View.VISIBLE
+        statusText.text = warning?.message.orEmpty()
+        statusChip.visibility = if (warning == null) View.GONE else View.VISIBLE
     }
 
     private fun NetworkCapabilities.isCaptivePortal() =
@@ -495,13 +466,6 @@ class MainActivity : Activity() {
         date.text = DateFormat.format(pattern, now)
     }
 
-    /** Fits as many tiles as the screen allows instead of assuming a density. */
-    private fun gridColumns(): Int {
-        val usable = resources.displayMetrics.widthPixels - 2 * dimen(R.dimen.screen_padding_h)
-        val perTile = dimen(R.dimen.tile_width) + dimen(R.dimen.tile_gap)
-        return (usable / perTile).coerceAtLeast(1)
-    }
-
     private fun systemSettingsPackage(): String? =
         packageManager.resolveActivity(Intent(Settings.ACTION_SETTINGS), 0)?.activityInfo?.packageName
 
@@ -514,11 +478,20 @@ class MainActivity : Activity() {
 
     private fun fillGrid(grid: LinearLayout, tiles: List<View>) {
         grid.removeAllViews()
-        tiles.chunked(gridColumns()).forEach { rowTiles ->
+        val width = dp(metrics.tileWidthDp)
+        val height = dp(metrics.tileHeightDp)
+        tiles.chunked(metrics.columns).forEachIndexed { rowIndex, rowTiles ->
             grid.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 clipChildren = false
-                rowTiles.forEach(::addView)
+                clipToPadding = false
+                rowTiles.forEachIndexed { i, tile ->
+                    addView(tile, LinearLayout.LayoutParams(width, height).apply {
+                        if (i > 0) marginStart = px(R.dimen.grid_gap_col)
+                    })
+                }
+            }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+                if (rowIndex > 0) topMargin = px(R.dimen.grid_gap_row)
             })
         }
     }
@@ -540,15 +513,11 @@ class MainActivity : Activity() {
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
-    private fun dimen(id: Int) = resources.getDimensionPixelSize(id)
-
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
-
     // endregion
 
     private companion object {
-        const val FOCUSED_SCALE = 1.08f
-        const val FOCUS_ANIM_MS = 120L
+        const val APP_ICON_DP = 40
+        const val UTILITY_ICON_DP = 28
         const val DATE_SKELETON = "EEEdMMM"
 
         // Prefixed so they can never collide with a package name.

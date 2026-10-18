@@ -3,7 +3,7 @@
 TV ?=
 APK ?=
 
-.PHONY: build test check ci-local install debloat scan restore emulator
+.PHONY: build test check ci-local install debloat scan restore emulator fonts
 
 build:
 	./gradlew assembleRelease
@@ -27,6 +27,11 @@ ci-local:
 	@image_path="$$(docker run --rm --platform $(ACT_PLATFORM) $(ACT_IMAGE) bash -lc 'echo $$PATH')"; \
 	act pull_request -j build --container-architecture $(ACT_PLATFORM) \
 		-P ubuntu-latest=$(ACT_IMAGE) --env PATH="$$image_path"
+
+# Rebuilds the Google Sans subsets and the wordmark banner (pip install fonttools).
+# SRC is GoogleSans[GRAD,opsz,wght].ttf and LICENSE its OFL.txt, from google/fonts ofl/googlesans.
+fonts:
+	python3 scripts/fonts/build_fonts.py "$(SRC)" "$(LICENSE)"
 
 install:
 	@if [ -z "$(APK)" ]; then ./gradlew assembleRelease; fi

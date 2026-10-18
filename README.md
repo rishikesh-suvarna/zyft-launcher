@@ -140,6 +140,7 @@ make test                   # unit tests
 make check                  # everything CI runs: shellcheck, tests, lint, build
 make ci-local               # run the real GitHub Actions job in Docker via act (slow on Apple Silicon)
 make emulator               # boot an Android TV AVD named "tcl_tv"
+make fonts SRC=... LICENSE=...  # rebuild the Google Sans subsets + banner wordmark (needs fonttools)
 make install TV=emulator-5554
 ```
 
@@ -169,4 +170,6 @@ Brand profiles are the most useful contribution. See [CONTRIBUTING.md](CONTRIBUT
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The bundled Google Sans font is licensed separately under the
+[SIL Open Font License 1.1](app/src/main/assets/fonts/GoogleSans-OFL.txt); "Google Sans" is a
+trademark of Google LLC, and this project is not affiliated with or endorsed by Google.

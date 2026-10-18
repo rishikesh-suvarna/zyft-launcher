@@ -266,7 +266,7 @@ private fun LinearLayout.onFocus(paint: (Boolean) -> Unit) {
 
 private fun TextView.applyListTextStyle(focused: Boolean, selectedColor: Int? = null) {
     setTextColor(context.getColor(if (focused) R.color.ink else selectedColor ?: R.color.text_primary))
-    typeface = if (focused) TileView.MEDIUM else android.graphics.Typeface.DEFAULT
+    typeface = if (focused) Fonts.medium else Fonts.regular
 }
 
 private fun radioDot(context: Context) = View(context)

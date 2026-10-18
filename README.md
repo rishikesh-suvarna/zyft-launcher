@@ -17,10 +17,11 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 - Favorites row (Netflix, Prime Video, YouTube, Apple TV and JioHotstar are pinned by default when installed)
 - All apps grid, sorted A-Z, by most used or by recently used
 - Vendor setup and service tools (factory menu, OTA, remote service, ...) hidden by default without disabling them; bring them back from Customize
-- Pin, hide, or jump to an app's App info; reorder favorites with a pick-up-and-move mode
-- Inputs tile for HDMI / AV sources
-- Gradient backgrounds (no wallpaper images, so no memory cost)
-- Clock and date, plus a "No network" / "Wi-Fi needs sign-in" warning
+- Pin, hide or unhide apps, or jump to their App info, from a side sheet; reorder favorites by picking one up and sliding it
+- Inputs sheet for HDMI / AV, with each port's custom name and signal state
+- Six gradient backgrounds, previewed live on the real home screen before you apply (no wallpaper images, so no memory cost)
+- Clock and date, plus an amber "No network" / "Wi-Fi needs sign-in" chip
+- A focus ring readable on any app banner (lime ring with a dark gap), row-by-row scrolling with a sticky header
 - Optional debloat: disables the stock launcher's recommendation services and vendor bloat, per TV brand
 
 See [ROADMAP.md](ROADMAP.md) for what's coming next.
@@ -115,11 +116,11 @@ Re-enables exactly what `install` and `debloat` disabled, resets animation speed
 | --- | --- |
 | D-pad + OK | Move and open |
 | 1 - 9 | Open favorite 1 - 9 (shown as a badge on each tile) |
-| Long-press OK, or Menu | App options: favorite, move, hide, app info |
-| In move mode | Left / right moves the tile, OK or Back drops it |
-| Home | Back to the top of the launcher |
-| Back | Does nothing on the home screen (by design) |
-| **Customize** tile | Sort order, background, show hidden apps |
+| Long-press OK, or Menu | App options: favorite, move, hide / unhide, app info |
+| In move mode | Left / right moves the tile, OK keeps the new spot, Back cancels |
+| Home or Back | Back to the top of the launcher |
+| In a sheet | Back (or Left) closes it |
+| **Customize** tile | Sort order, background (live preview, OK applies, Back reverts), show hidden apps |
 | **Inputs** tile | Switch to HDMI / AV |
 
 ## Troubleshooting

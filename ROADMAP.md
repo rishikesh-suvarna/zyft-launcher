@@ -1,6 +1,6 @@
 # Roadmap
 
-Guiding rule: every feature must keep the launcher small, permission-free and fast on a 1.5 GB RAM TV. Anything that needs a background service, network access or large bitmaps is out unless it is opt-in.
+Guiding rule: every feature must keep the launcher small, offline (no internet permission) and fast on a 1.5 GB RAM TV. Anything that needs a background service, network access or large bitmaps is out unless it is opt-in.
 
 ## Phase 1: Usable by anyone (done)
 
@@ -15,7 +15,7 @@ Guiding rule: every feature must keep the launcher small, permission-free and fa
 - [x] **Number keys:** keys 1-9 on the remote open favorites 1-9 directly
 - [x] **Move mode:** reorder favorites by pressing OK, then left/right, then OK, instead of one step per menu
 - [x] **Status header:** date next to the clock
-- [ ] **No-network warning** in the header (needs the install-time `ACCESS_NETWORK_STATE` permission, so it is opt-in by decision)
+- [x] **No-network warning** in the header (uses the install-time `ACCESS_NETWORK_STATE` permission only)
 
 ## Phase 3: Nice to have (opt-in)
 

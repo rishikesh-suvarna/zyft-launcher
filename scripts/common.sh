@@ -1,4 +1,6 @@
+# shellcheck shell=bash
 # Shared helpers; sourced by the other scripts.
+# shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 set -euo pipefail
 
 readonly ADB_PORT=5555
@@ -6,7 +8,8 @@ readonly CONNECT_TIMEOUT_S=30
 readonly SELF_PKG="dev.rishi.tvlauncher"
 readonly SELF_HOME="$SELF_PKG/.MainActivity"
 readonly APK="${APK:-app/build/outputs/apk/release/app-release.apk}"
-readonly PROFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../profiles" && pwd)"
+PROFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../profiles" && pwd)"
+readonly PROFILES_DIR
 
 # Stock home apps that grab the Home button. Disabling (not uninstalling) is reversible.
 readonly STOCK_LAUNCHERS=(

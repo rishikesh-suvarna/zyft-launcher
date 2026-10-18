@@ -7,7 +7,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 ![Lite Launcher home screen](docs/screenshot.png)
 
 - **Small and fast:** about 50 KB, no libraries, opens in roughly 100 ms.
-- **No ads, no feeds, no tracking:** the app requests **zero permissions**, not even internet access.
+- **No ads, no feeds, no tracking:** the app has **no internet access**. Its only permission is reading network state, to warn you when the TV is offline.
 - **Built for the remote:** D-pad navigation, long-press menus, nothing that needs a pointer.
 - **Fully reversible:** one command puts your TV back exactly as it was.
 
@@ -19,7 +19,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 - Pin, hide, or jump to an app's App info; reorder favorites with a pick-up-and-move mode
 - Inputs tile for HDMI / AV sources
 - Gradient backgrounds (no wallpaper images, so no memory cost)
-- Clock and date
+- Clock and date, plus a "No network" / "Wi-Fi needs sign-in" warning
 - Optional debloat: disables the stock launcher's recommendation services and vendor bloat, per TV brand
 
 See [ROADMAP.md](ROADMAP.md) for what's coming next.
@@ -141,7 +141,7 @@ scripts/               adb tooling behind the make targets
 
 To drive the emulator from your keyboard (arrows = D-pad, Enter = OK, Esc = Back), set `hw.keyboard = yes` in `~/.android/avd/<name>.avd/config.ini`.
 
-Design rules: no dependencies beyond the Kotlin stdlib, no permissions, keep the logic in pure functions with JVM unit tests, and measure cold start before adding anything heavy.
+Design rules: no dependencies beyond the Kotlin stdlib, no internet permission, no new permissions without a strong reason, keep the logic in pure functions with JVM unit tests, and measure cold start before adding anything heavy.
 
 Releases: pushing a `v*` tag builds a signed APK and publishes it to GitHub Releases. Set the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` first; the workflow refuses to publish debug-signed builds.
 

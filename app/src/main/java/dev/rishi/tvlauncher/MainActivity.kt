@@ -9,6 +9,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.drawable.Drawable
 import android.media.tv.TvContract
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.media.tv.TvInputManager
 import android.net.Uri
 import android.os.Build
@@ -43,6 +46,8 @@ class MainActivity : Activity() {
     private lateinit var scroll: ScrollView
     private lateinit var clock: TextView
     private lateinit var date: TextView
+    private lateinit var networkStatus: TextView
+    private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
     private lateinit var favoritesRow: LinearLayout
     private lateinit var favoritesLabel: TextView
     private lateinit var appsLabel: TextView
@@ -57,6 +62,14 @@ class MainActivity : Activity() {
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = loadApps()
+    }
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) =
+            showNetworkWarning(networkWarning(hasNetwork = true, isCaptivePortal = capabilities.isCaptivePortal()))
+
+        override fun onLost(network: Network) =
+            showNetworkWarning(networkWarning(hasNetwork = false, isCaptivePortal = false))
     }
 
     private val clockReceiver = object : BroadcastReceiver() {
@@ -88,6 +101,7 @@ class MainActivity : Activity() {
             addAction(Intent.ACTION_TIMEZONE_CHANGED)
             addAction(Intent.ACTION_DATE_CHANGED)
         })
+        watchNetwork()
     }
 
     /** Back from an app: usage-based orders may have changed. */
@@ -103,6 +117,7 @@ class MainActivity : Activity() {
     }
 
     override fun onStop() {
+        connectivity.unregisterNetworkCallback(networkCallback)
         unregisterReceiver(clockReceiver)
         super.onStop()
     }
@@ -210,6 +225,10 @@ class MainActivity : Activity() {
 
     private fun buildLayout(): View {
         clock = text(sizeSp = 22f, color = R.color.text_primary)
+        networkStatus = text(sizeSp = 16f, color = R.color.moving).apply {
+            visibility = View.GONE
+            setPadding(0, 0, dp(18), 0)
+        }
         date = text(sizeSp = 16f, color = R.color.text_secondary).apply {
             setPadding(0, 0, dp(14), 0)
         }
@@ -217,6 +236,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))
+            addView(networkStatus)
             addView(date)
             addView(clock)
         }
@@ -459,6 +479,25 @@ class MainActivity : Activity() {
     // endregion
 
     // region Helpers
+
+    /**
+     * The callback only reports when a default network exists, so the "nothing at all"
+     * state has to be read once up front.
+     */
+    private fun watchNetwork() {
+        val current = connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities)
+        showNetworkWarning(networkWarning(current != null, current?.isCaptivePortal() == true))
+        connectivity.registerDefaultNetworkCallback(networkCallback)
+    }
+
+    /** Network callbacks arrive on a binder thread. */
+    private fun showNetworkWarning(warning: NetworkWarning?) = runOnUiThread {
+        networkStatus.text = warning?.message.orEmpty()
+        networkStatus.visibility = if (warning == null) View.GONE else View.VISIBLE
+    }
+
+    private fun NetworkCapabilities.isCaptivePortal() =
+        hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)
 
     private fun applyBackdrop() {
         window.setBackgroundDrawable(prefs.backdrop.drawable())

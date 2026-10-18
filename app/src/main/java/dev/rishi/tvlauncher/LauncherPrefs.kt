@@ -30,14 +30,10 @@ class LauncherPrefs(context: Context) {
         prefs.edit().putString(KEY_FAVORITES, updated.joinToString(SEPARATOR)).apply()
     }
 
-    /** Moves a pinned app one slot; delta is -1 (left) or +1 (right). */
-    fun moveFavorite(pkg: String, delta: Int) {
-        val list = favorites.toMutableList()
-        val from = list.indexOf(pkg)
-        val to = from + delta
-        if (from < 0 || to !in list.indices) return
-        list.add(to, list.removeAt(from))
-        prefs.edit().putString(KEY_FAVORITES, list.joinToString(SEPARATOR)).apply()
+    /** Moves a pinned app one on-screen slot; direction is -1 (left) or +1 (right). */
+    fun moveFavorite(pkg: String, direction: Int, isVisible: (String) -> Boolean) {
+        val updated = favorites.movedAmongVisible(pkg, direction, isVisible)
+        prefs.edit().putString(KEY_FAVORITES, updated.joinToString(SEPARATOR)).apply()
     }
 
     fun hide(pkg: String) {

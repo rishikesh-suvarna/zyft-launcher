@@ -16,6 +16,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 - Number keys 1-9 on the remote open your first nine favorites
 - Favorites row (Netflix, Prime Video, YouTube, Apple TV and JioHotstar are pinned by default when installed)
 - All apps grid, sorted A-Z, by most used or by recently used
+- Vendor setup and service tools (factory menu, OTA, remote service, ...) hidden by default without disabling them; bring them back from Customize
 - Pin, hide, or jump to an app's App info; reorder favorites with a pick-up-and-move mode
 - Inputs tile for HDMI / AV sources
 - Gradient backgrounds (no wallpaper images, so no memory cost)

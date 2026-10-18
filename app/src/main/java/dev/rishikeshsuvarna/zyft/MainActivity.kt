@@ -1,11 +1,13 @@
 package dev.rishikeshsuvarna.zyft
 
 import android.app.Activity
+import android.animation.ObjectAnimator
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.media.tv.TvContract
 import android.net.ConnectivityManager
@@ -25,7 +27,6 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import java.util.Date
@@ -40,7 +41,16 @@ class MainActivity : Activity() {
     private val loader: ExecutorService = Executors.newSingleThreadExecutor()
 
     private lateinit var root: FrameLayout
-    private lateinit var scroll: ScrollView
+    private lateinit var scroll: ZyftScrollView
+    private lateinit var content: LinearLayout
+    private lateinit var stickyHeader: BackdropSliceView
+    private lateinit var stickyLabel: TextView
+    private lateinit var stickyClock: TextView
+    private lateinit var bottomFade: BackdropSliceView
+    private lateinit var scrollTrack: FrameLayout
+    private lateinit var scrollThumb: View
+    private var scrollAnimator: ObjectAnimator? = null
+    private var welcomeCard: View? = null
     private var activeSheet: SideSheet? = null
     private lateinit var clock: TextView
     private lateinit var date: TextView
@@ -88,6 +98,11 @@ class MainActivity : Activity() {
         applyBackdrop()
         metrics = resources.displayMetrics.let { gridMetrics(it.widthPixels, it.density) }
         setContentView(buildLayout())
+        applyBackdrop()
+        // Row-snapped scrolling (screen 08): follow focus ourselves instead of ScrollView's default.
+        root.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
+            if (newFocus is TileView && isInHome(newFocus)) onTileFocused(newFocus)
+        }
 
         registerSystemReceiver(packageReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -137,8 +152,8 @@ class MainActivity : Activity() {
     /** Home pressed while already home: jump back to the top. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        scroll.scrollTo(0, 0)
-        focusFirstTile()
+        if (activeSheet != null || welcomeCard != null) return
+        jumpToTop()
     }
 
     /**
@@ -147,6 +162,10 @@ class MainActivity : Activity() {
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         activeSheet?.let { sheet -> return sheet.interceptKey(event) || super.dispatchKeyEvent(event) }
+        if (welcomeCard != null && event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_DOWN) dismissWelcome()
+            return true
+        }
         val moving = movingKey ?: return super.dispatchKeyEvent(event)
         val isDown = event.action == KeyEvent.ACTION_DOWN
         when (event.keyCode) {
@@ -175,8 +194,11 @@ class MainActivity : Activity() {
     }
 
     private fun onHomeKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
-        // A home screen has nowhere to go back to.
-        KeyEvent.KEYCODE_BACK -> true
+        // A home screen has nowhere to go back to; Back jumps to the top instead (screen 08).
+        KeyEvent.KEYCODE_BACK -> {
+            if (scroll.scrollY > 0) jumpToTop()
+            true
+        }
         in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9,
         in KeyEvent.KEYCODE_NUMPAD_1..KeyEvent.KEYCODE_NUMPAD_9 -> {
             favoriteSlotForKey(keyCode)?.let(visibleFavorites::getOrNull)?.let(::launch)
@@ -228,6 +250,8 @@ class MainActivity : Activity() {
             allTiles().firstOrNull { tileKey(it) == key }
         }
         if (restored != null) restored.requestFocus() else focusFirstTile()
+        showWelcomeIfFirstRun()
+        scroll.post { onHomeScrolled(scroll.scrollY) }
     }
 
     // endregion
@@ -267,7 +291,7 @@ class MainActivity : Activity() {
         appsLabel = sectionLabel()
         appsGrid = grid()
 
-        val content = LinearLayout(this).apply {
+        content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             clipChildren = false
             // Let the focused tile's ring and scale spill into the safe-area margin.
@@ -281,20 +305,186 @@ class MainActivity : Activity() {
             addView(appsGrid)
         }
 
-        scroll = ScrollView(this).apply {
+        scroll = ZyftScrollView(this).apply {
             isVerticalScrollBarEnabled = false
             isFillViewport = true
             clipChildren = false
             addView(content, MATCH_PARENT, WRAP_CONTENT)
+            onScrolled = ::onHomeScrolled
         }
         moveHint = moveHintBar()
+        stickyHeader = stickyHeaderBar()
+        bottomFade = BackdropSliceView(
+            this,
+            maskColors = intArrayOf(0x00000000, 0xFF000000.toInt(), 0xFF000000.toInt()),
+            maskStops = floatArrayOf(0f, 0.85f, 1f),
+        ).apply { visibility = View.GONE }
+        scrollTrack = scrollIndicator()
         root = FrameLayout(this).apply {
             addView(scroll, MATCH_PARENT, MATCH_PARENT)
+            addView(bottomFade, FrameLayout.LayoutParams(MATCH_PARENT, dp(BOTTOM_FADE_DP), Gravity.BOTTOM))
+            addView(stickyHeader, FrameLayout.LayoutParams(MATCH_PARENT, stickyZone(), Gravity.TOP))
+            addView(scrollTrack, FrameLayout.LayoutParams(dp(3), MATCH_PARENT, Gravity.END).apply {
+                setMargins(0, dp(SCROLL_TRACK_INSET_DP), dp(24), dp(SCROLL_TRACK_INSET_DP))
+            })
             addView(moveHint, FrameLayout.LayoutParams(WRAP_CONTENT, dp(44), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
                 bottomMargin = px(R.dimen.safe_y)
             })
         }
         return root
+    }
+
+    /** Screen 08: collapsed header shown once the real one scrolls away: section left, time right. */
+    private fun stickyHeaderBar(): BackdropSliceView {
+        stickyLabel = sectionLabel()
+        stickyClock = label(R.dimen.type_clock, R.color.text_primary, medium = true)
+        // Solid down to where grid rows start (so the real section label scrolling under it is
+        // fully hidden), with a short fade at the very bottom.
+        val fadeStart = 1f - dp(STICKY_FADE_DP).toFloat() / stickyZone()
+        return BackdropSliceView(
+            this,
+            maskColors = intArrayOf(0xFF000000.toInt(), 0xFF000000.toInt(), 0x00000000),
+            maskStops = floatArrayOf(0f, fadeStart, 1f),
+        ).apply {
+            visibility = View.GONE
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(px(R.dimen.safe_x), 0, px(R.dimen.safe_x), 0)
+                addView(stickyLabel, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+                addView(stickyClock)
+            }, FrameLayout.LayoutParams(MATCH_PARENT, px(R.dimen.header_height)).apply { topMargin = px(R.dimen.safe_y) })
+        }
+    }
+
+    /** 3 dp scroll position hint, visible only while scrolling. */
+    private fun scrollIndicator() = FrameLayout(this).apply {
+        alpha = 0f
+        background = roundedFill(R.color.stroke_hairline, R.dimen.radius_key).apply { cornerRadius = dp(2).toFloat() }
+        scrollThumb = View(context).apply {
+            background = roundedFill(R.color.text_secondary, R.dimen.radius_key).apply { cornerRadius = dp(2).toFloat() }
+        }
+        addView(scrollThumb, FrameLayout.LayoutParams(MATCH_PARENT, dp(56)))
+    }
+
+    private fun onTileFocused(tile: TileView) {
+        val rect = Rect(0, 0, tile.width, tile.height)
+        content.offsetDescendantRectToMyCoords(tile, rect)
+        val target = rowSnapScrollTarget(
+            rowTop = rect.top,
+            rowBottom = rect.bottom,
+            viewportHeight = scroll.height,
+            contentHeight = content.height,
+            stickyZone = stickyZone(),
+            rowPitch = dp(metrics.tileHeightDp) + px(R.dimen.grid_gap_row),
+            bottomReserve = px(R.dimen.safe_y) + dp(CAPTION_ROOM_DP),
+        )
+        stickyLabel.text = if (tile.parent?.parent === favoritesGrid) favoritesLabel.text else appsLabel.text
+        smoothScrollTo(target)
+    }
+
+    /** Top band covered by the collapsed header; scrolled rows start right below it. */
+    private fun stickyZone() = px(R.dimen.safe_y) + px(R.dimen.header_height) + px(R.dimen.section_top)
+
+    private fun smoothScrollTo(target: Int) {
+        if (target == scroll.scrollY) return
+        scrollAnimator?.cancel()
+        scrollAnimator = ObjectAnimator.ofInt(scroll, "scrollY", target).apply {
+            duration = Motion.SCROLL_MS
+            start()
+        }
+    }
+
+    private fun jumpToTop() {
+        smoothScrollTo(0)
+        focusFirstTile()
+    }
+
+    private fun onHomeScrolled(scrollY: Int) {
+        val collapsed = scrollY > px(R.dimen.header_height)
+        stickyHeader.visibility = if (collapsed) View.VISIBLE else View.GONE
+        bottomFade.visibility = if (scroll.canScrollVertically(1)) View.VISIBLE else View.GONE
+
+        // Thumb position and size track the viewport; fade the indicator out after scrolling stops.
+        val range = (content.height - scroll.height).coerceAtLeast(1)
+        val trackHeight = scrollTrack.height
+        val thumbHeight = (trackHeight.toLong() * scroll.height / content.height.coerceAtLeast(1)).toInt()
+            .coerceIn(dp(24), trackHeight)
+        scrollThumb.layoutParams.height = thumbHeight
+        scrollThumb.translationY = (trackHeight - thumbHeight) * scrollY.toFloat() / range
+        scrollThumb.requestLayout()
+        scrollTrack.animate().cancel()
+        scrollTrack.alpha = 1f
+        scrollTrack.animate().alpha(0f).setStartDelay(Motion.SCROLL_INDICATOR_HIDE_DELAY_MS).setDuration(Motion.FOCUS_IN_MS).start()
+    }
+
+    private fun isInHome(view: View): Boolean {
+        var parent = view.parent
+        while (parent != null) {
+            if (parent === content) return true
+            parent = parent.parent
+        }
+        return false
+    }
+
+    /** Screen 07: one-time card with the three remote gestures; single focus target. */
+    private fun showWelcomeIfFirstRun() {
+        if (prefs.welcomeSeen || welcomeCard != null) return
+        val got = label(R.dimen.type_list_item, R.color.ink, medium = true, text = "Got it").apply {
+            gravity = Gravity.CENTER
+            setPadding(dp(24), 0, dp(24), 0)
+            background = roundedFill(R.color.accent, R.dimen.radius_list)
+        }
+        // Lime ring 2 dp outside the button, matching the focus treatment.
+        val button = FrameLayout(this).apply {
+            isFocusable = true
+            isClickable = true
+            setPadding(dp(5), dp(5), dp(5), dp(5))
+            background = GradientDrawable().apply {
+                cornerRadius = resources.getDimension(R.dimen.radius_list) + dp(5)
+                setStroke(dp(3), getColor(R.color.accent))
+            }
+            addView(got, FrameLayout.LayoutParams(WRAP_CONTENT, dp(44)))
+            setOnClickListener { dismissWelcome() }
+        }
+        val hints = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            listOf("Hold OK" to "pin or move", "1\u20139" to "open a favorite", "Menu" to "app options").forEachIndexed { i, hint ->
+                addView(keyHint(hint), LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { if (i > 0) marginStart = dp(24) })
+            }
+        }
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(24), dp(20), dp(24), dp(20))
+            background = roundedFill(R.color.surface_sheet, R.dimen.radius_card, R.color.stroke_hairline)
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(label(R.dimen.type_sheet_title, R.color.text_primary, medium = true, text = "Welcome to Zyft"))
+                addView(hints, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(12) })
+            }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            addView(button, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(32) })
+        }
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(getColor(R.color.scrim_light))
+            addView(card, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, Gravity.BOTTOM).apply {
+                setMargins(px(R.dimen.safe_x), 0, px(R.dimen.safe_x), px(R.dimen.safe_y))
+            })
+        }
+        welcomeCard = overlay
+        scroll.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        root.addView(overlay, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        button.requestFocus()
+    }
+
+    private fun dismissWelcome() {
+        val card = welcomeCard ?: return
+        prefs.welcomeSeen = true
+        welcomeCard = null
+        root.removeView(card)
+        scroll.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        // Design: focus lands on the first app.
+        (tilesIn(appsGrid).firstOrNull() ?: allTiles().firstOrNull())?.requestFocus()
     }
 
     /** Screen 03: floating key hint while a favorite is being moved. */
@@ -548,7 +738,7 @@ class MainActivity : Activity() {
             setOnFocusChangeListener { _, focused ->
                 name.setTextColor(getColor(if (focused) R.color.text_primary else R.color.text_secondary))
                 if (!focused) return@setOnFocusChangeListener
-                window.setBackgroundDrawable(backdrop.drawable())
+                showBackdrop(backdrop)
                 if (backdrop == prefs.backdrop) {
                     sheet.footerHint("Back" to "close")
                 } else {
@@ -621,13 +811,21 @@ class MainActivity : Activity() {
     private fun NetworkCapabilities.isCaptivePortal() =
         hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)
 
-    private fun applyBackdrop() {
-        window.setBackgroundDrawable(prefs.backdrop.drawable())
+    private fun applyBackdrop() = showBackdrop(prefs.backdrop)
+
+    /** Window plus the overlays that repaint a slice of it, so previews stay seamless. */
+    private fun showBackdrop(backdrop: Backdrop) {
+        window.setBackgroundDrawable(backdrop.drawable())
+        if (::stickyHeader.isInitialized) {
+            stickyHeader.setBackdrop(backdrop)
+            bottomFade.setBackdrop(backdrop)
+        }
     }
 
     private fun updateClock() {
         val now = Date()
         clock.text = DateFormat.getTimeFormat(this).format(now)
+        if (::stickyClock.isInitialized) stickyClock.text = clock.text
         // Locale-aware short form, e.g. "Sat, 18 Oct" or "Sat, Oct 18".
         val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), DATE_SKELETON)
         date.text = DateFormat.format(pattern, now)
@@ -685,6 +883,9 @@ class MainActivity : Activity() {
     private companion object {
         const val APP_ICON_DP = 40
         const val CAPTION_ROOM_DP = 20
+        const val BOTTOM_FADE_DP = 96
+        const val STICKY_FADE_DP = 12
+        const val SCROLL_TRACK_INSET_DP = 87
         const val UTILITY_ICON_DP = 28
         const val DATE_SKELETON = "EEEdMMM"
 

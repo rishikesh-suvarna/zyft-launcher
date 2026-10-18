@@ -60,6 +60,11 @@ class LauncherPrefs(context: Context) {
 
     fun isHidden(pkg: String) = pkg in hidden
 
+    /** One-time welcome card (design screen 07). */
+    var welcomeSeen: Boolean
+        get() = prefs.getBoolean(KEY_WELCOME_SEEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_WELCOME_SEEN, value).apply()
+
     /** Customize > Show hidden apps: hidden apps appear in the grid so they can be unhidden. */
     var showHidden: Boolean
         get() = prefs.getBoolean(KEY_SHOW_HIDDEN, false)
@@ -94,6 +99,7 @@ class LauncherPrefs(context: Context) {
         const val KEY_FAVORITES = "favorites"
         const val KEY_HIDDEN = "hidden"
         const val KEY_SHOW_HIDDEN = "show_hidden"
+        const val KEY_WELCOME_SEEN = "welcome_seen"
         const val KEY_SEEDED = "seeded"
         const val KEY_DEFAULT_HIDDEN_APPLIED = "default_hidden_v1"
         const val KEY_SORT = "sort"

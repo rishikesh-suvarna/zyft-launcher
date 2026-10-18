@@ -288,7 +288,8 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
         private const val CHEVRON_W_DP = 10
         private const val CHEVRON_H_DP = 14
         private const val CHEVRON_OUTSET_DP = 19
-        private const val CAPTION_GAP_DP = 8
+        // Design says 8 dp, but with 720p tiles and the 1.06 focus scale that touches the next row.
+        private const val CAPTION_GAP_DP = 4
         private const val CAPTION_OVERHANG_DP = 8
     }
 }

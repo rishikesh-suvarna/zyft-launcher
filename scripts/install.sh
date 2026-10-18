@@ -6,7 +6,18 @@ connect_tv "${1:-}"
 [[ -f "$APK" ]] || die "$APK not found; run 'make build' first"
 
 echo "Installing $APK..."
-adb install -r "$APK"
+# A self-built APK (debug key) and a release APK (release key) can't update each other.
+if ! output="$(adb install -r "$APK" 2>&1)"; then
+  echo "$output"
+  [[ "$output" == *INSTALL_FAILED_UPDATE_INCOMPATIBLE* ]] || die "install failed"
+  echo "The installed Lite Launcher is signed with a different key, so it can't be updated in place."
+  confirm "Uninstall it and install this one? Launcher settings (favorites, hidden apps, sort) will reset." \
+    || die "aborted; nothing changed"
+  adb uninstall "$SELF_PKG" >/dev/null
+  adb install "$APK"
+else
+  echo "$output"
+fi
 
 echo "Current home candidates:"
 adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME | grep / || true

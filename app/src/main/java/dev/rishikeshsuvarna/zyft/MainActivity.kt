@@ -27,6 +27,7 @@ import android.view.ViewTreeObserver
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -337,7 +338,13 @@ class MainActivity : Activity() {
         clock = label(R.dimen.type_clock, R.color.text_primary, medium = true)
         header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            gravity = Gravity.CENTER_VERTICAL
+            // Logo option A lockup (mark + "zyft"), generated from Google Sans by build_fonts.py.
+            addView(ImageView(context).apply {
+                setImageResource(R.drawable.logo_lockup)
+                contentDescription = getString(R.string.app_name)
+            }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+            addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))
             addView(statusChip, LinearLayout.LayoutParams(WRAP_CONTENT, dp(28)).apply { marginEnd = dp(16) })
             addView(date, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginEnd = dp(12) })
             addView(clock)

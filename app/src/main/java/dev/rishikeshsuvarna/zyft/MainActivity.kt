@@ -23,6 +23,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
@@ -31,8 +32,12 @@ import android.widget.TextView
 import android.widget.Toast
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 class MainActivity : Activity() {
 
@@ -74,9 +79,15 @@ class MainActivity : Activity() {
     private lateinit var moveHint: View
     /** Bumped on every load so a slow, stale load can't overwrite a newer one. */
     private var loadGeneration = 0
+    /** Set once the first real grid is on screen; drives reportFullyDrawn(). */
+    private var reportedFullyDrawn = false
+    /** Generation of the load currently on screen, so the startup fast path isn't rendered twice. */
+    private var shownGeneration = 0
 
     private val packageReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) = loadApps()
+        override fun onReceive(context: Context, intent: Intent) {
+            loadApps()
+        }
     }
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -92,14 +103,34 @@ class MainActivity : Activity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Perf.milestone("onCreate")
         super.onCreate(savedInstanceState)
         prefs = LauncherPrefs(this)
-        Fonts.load(this)
-        repository = AppRepository(packageManager, packageName)
-        applyBackdrop()
         metrics = resources.displayMetrics.let { gridMetrics(it.widthPixels, it.density) }
-        setContentView(buildLayout())
+        repository = AppRepository(
+            pm = packageManager,
+            resources = resources,
+            selfPackage = packageName,
+            cacheDir = cacheDir,
+            bannerWidthPx = dp(metrics.tileWidthDp),
+            bannerHeightPx = dp(metrics.tileHeightDp),
+            iconSizePx = dp(APP_ICON_DP),
+        )
+        // Start reading apps now so it overlaps fonts and layout.
+        val initialLoad = loadApps()
+        Perf.section("Zyft.fonts") { Fonts.load(this) }
+        setContentView(Perf.section("Zyft.buildLayout") { buildLayout() })
         applyBackdrop()
+        showInitialAppsIfReady(initialLoad)
+        if (Perf.enabled) root.viewTreeObserver.addOnDrawListener(object : ViewTreeObserver.OnDrawListener {
+            private var frames = 0
+            override fun onDraw() {
+                // First frame, and the first frame drawn after the tiles were rendered.
+                if (frames == 0) Perf.milestone("firstDraw")
+                if (apps.isNotEmpty() && frames >= 0) { Perf.milestone("tilesDrawn"); frames = -1; return }
+                if (frames >= 0) frames++
+            }
+        })
         // Row-snapped scrolling (screen 08): follow focus ourselves instead of ScrollView's default.
         root.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
             if (newFocus is TileView && isInHome(newFocus)) onTileFocused(newFocus)
@@ -111,7 +142,6 @@ class MainActivity : Activity() {
             addAction(Intent.ACTION_PACKAGE_CHANGED)
             addDataScheme("package")
         })
-        loadApps()
     }
 
     override fun onStart() {
@@ -214,15 +244,44 @@ class MainActivity : Activity() {
 
     // region Loading
 
-    private fun loadApps() {
+    /** Reloads apps in the background (startup and package changes); the newest load wins. */
+    private fun loadApps(): Future<List<AppEntry>> {
         val generation = ++loadGeneration
+        val load = loader.submit(Callable { Perf.section("Zyft.loadApps") { repository.loadLaunchableApps() } })
         loader.execute {
-            val loaded = repository.loadLaunchableApps()
-            runOnUiThread {
-                if (generation != loadGeneration || isDestroyed) return@runOnUiThread
-                apps = loaded
-                render()
-            }
+            val loaded = runCatching { load.get() }.getOrNull() ?: return@execute
+            runOnUiThread { showApps(generation, loaded) }
+        }
+        return load
+    }
+
+    /**
+     * Startup: with a warm cache the app list is ready ~100 ms after onCreate starts, so wait for
+     * it briefly and render the tiles into the very first frame instead of drawing an empty grid
+     * and laying everything out twice. A cache miss (first run, app updates) just times out and
+     * the background path above delivers the tiles a moment later.
+     */
+    private fun showInitialAppsIfReady(load: Future<List<AppEntry>>) {
+        val loaded = try {
+            load.get(FIRST_FRAME_WAIT_MS, TimeUnit.MILLISECONDS)
+        } catch (e: TimeoutException) {
+            Perf.log("app list not ready for the first frame; rendering when it arrives")
+            return
+        }
+        showApps(loadGeneration, loaded)
+    }
+
+    private fun showApps(generation: Int, loaded: List<AppEntry>) {
+        // Stale (a newer load started), already shown (startup fast path), or activity gone.
+        if (generation != loadGeneration || isDestroyed || generation == shownGeneration) return
+        shownGeneration = generation
+        apps = loaded
+        Perf.milestone("render")
+        Perf.section("Zyft.render") { render() }
+        if (!reportedFullyDrawn) {
+            reportedFullyDrawn = true
+            // Logged by the system as "Fully drawn": time until real tiles are on screen.
+            root.post { reportFullyDrawn() }
         }
     }
 
@@ -568,11 +627,10 @@ class MainActivity : Activity() {
 
     /** [number] badges a favorite with its remote shortcut key. */
     private fun appTile(app: AppEntry, number: Int? = null): View {
-        val banner = app.banner
-        val tile = if (banner != null) {
-            TileView(this, TileView.Kind.BANNER).apply { setBanner(banner); caption = app.label }
+        val tile = if (app.hasBanner) {
+            TileView(this, TileView.Kind.BANNER).apply { setBanner(app.art); caption = app.label }
         } else {
-            TileView(this, TileView.Kind.APP).apply { setIconAndLabel(app.icon, app.label, APP_ICON_DP) }
+            TileView(this, TileView.Kind.APP).apply { setIconAndLabel(app.art, app.label, APP_ICON_DP) }
         }
         number?.let(tile::setBadge)
         tile.tag = app
@@ -641,7 +699,7 @@ class MainActivity : Activity() {
             block()
             render()
         }
-        sheet.appHeader(app.banner, app.icon, app.label, subtitle)
+        sheet.appHeader(app.art.takeIf { app.hasBanner }, app.art.takeUnless { app.hasBanner }, app.label, subtitle)
         if (position >= 0) {
             act("Remove from favorites") { prefs.toggleFavorite(pkg) }
             if (visibleFavorites.size > 1) act("Move") { startMove(pkg) }
@@ -883,6 +941,8 @@ class MainActivity : Activity() {
 
     private companion object {
         const val APP_ICON_DP = 40
+        /** Longest the first frame waits for the cached app list (normally ready in ~50 ms). */
+        const val FIRST_FRAME_WAIT_MS = 150L
         const val CAPTION_ROOM_DP = 20
         const val BOTTOM_FADE_DP = 96
         const val STICKY_FADE_DP = 12

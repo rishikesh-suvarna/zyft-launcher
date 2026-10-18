@@ -25,11 +25,14 @@ If the stock launcher has a package name we don't know yet, add it to `STOCK_LAU
 - Kotlin, no dependencies beyond the stdlib. Every new library or permission needs a strong reason.
 - Put logic in pure functions (see `AppArranger.kt`, `Sorting.kt`) and cover them with JVM unit tests.
 - Everything must work with a D-pad: no touch-only or pointer-only UI.
-- Check cold start before and after a UI change:
+- Check startup on a real TV before and after a UI change. "Fully drawn" is when tiles are on
+  screen; `ZyftPerf` logs (off by default) break it down into phases:
   ```sh
+  adb shell setprop log.tag.ZyftPerf DEBUG
   adb logcat -c && adb shell am force-stop dev.rishikeshsuvarna.zyft && adb shell input keyevent KEYCODE_HOME
-  adb logcat -d | grep "Displayed dev.rishikeshsuvarna.zyft"
+  adb logcat -d | grep -E "Displayed|Fully drawn|ZyftPerf"
   ```
+  TV load (background updates, swapping) shifts results a lot: compare builds interleaved, not hours apart.
 - Run `make check` before opening a PR.
 
 ## Commits

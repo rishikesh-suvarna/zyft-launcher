@@ -6,7 +6,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 
 ![Lite Launcher home screen](docs/screenshot.png)
 
-- **Small and fast:** about 80 KB, no libraries, opens in roughly 100 ms.
+- **Small and fast:** about 50 KB, no libraries, opens in roughly 100 ms.
 - **No ads, no feeds, no tracking:** the app requests **zero permissions**, not even internet access.
 - **Built for the remote:** D-pad navigation, long-press menus, nothing that needs a pointer.
 - **Fully reversible:** one command puts your TV back exactly as it was.
@@ -19,7 +19,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 - Pin, hide, or jump to an app's App info; reorder favorites with a pick-up-and-move mode
 - Inputs tile for HDMI / AV sources
 - Gradient backgrounds (no wallpaper images, so no memory cost)
-- Clock
+- Clock and date
 - Optional debloat: disables the stock launcher's recommendation services and vendor bloat, per TV brand
 
 See [ROADMAP.md](ROADMAP.md) for what's coming next.

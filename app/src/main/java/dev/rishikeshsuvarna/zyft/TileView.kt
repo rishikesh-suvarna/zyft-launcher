@@ -72,6 +72,7 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
     var isMoving: Boolean = false
         set(value) {
             field = value
+            updatePivot()
             animateToState()
         }
 
@@ -161,6 +162,20 @@ class TileView(context: Context, val kind: Kind) : FrameLayout(context) {
                 setStroke(resources.getDimensionPixelSize(R.dimen.hairline), context.getColor(R.color.stroke_badge))
             }
         }, LayoutParams(size, size, Gravity.TOP or Gravity.START).apply { setMargins(inset, inset, 0, 0) })
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        updatePivot()
+    }
+
+    /**
+     * A lifted tile grows from its top edge: with large 720p tiles a centred 1.12 scale plus
+     * the lift would rise into the section label above. Rising by just the lift keeps it clear.
+     */
+    private fun updatePivot() {
+        pivotX = width / 2f
+        pivotY = if (isMoving) 0f else height / 2f
     }
 
     override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {

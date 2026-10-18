@@ -58,6 +58,10 @@ class MainActivity : Activity() {
     private var visibleFavorites: List<AppEntry> = emptyList()
     /** Package of the favorite being dragged in move mode, or null when not moving. */
     private var movingKey: String? = null
+    /** Favorites order when move mode started, restored if the move is cancelled with Back. */
+    private var orderBeforeMove: List<String> = emptyList()
+    private lateinit var header: View
+    private lateinit var moveHint: View
     /** Bumped on every load so a slow, stale load can't overwrite a newer one. */
     private var loadGeneration = 0
 
@@ -149,11 +153,16 @@ class MainActivity : Activity() {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> if (isDown) {
                 val direction = if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1
                 val visible = visibleFavorites.map { it.packageName }.toSet()
+                val before = favoriteTilePositions()
                 prefs.moveFavorite(moving, direction) { it in visible }
                 render()
+                animateSwaps(before)
             }
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BACK ->
-                if (isDown) endMove()
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> if (isDown) endMove()
+            KeyEvent.KEYCODE_BACK -> if (isDown) {
+                prefs.setFavorites(orderBeforeMove)
+                endMove()
+            }
             // Up/down would leave the row mid-move; swallow everything else too.
         }
         return true
@@ -209,9 +218,11 @@ class MainActivity : Activity() {
             appTile(app, number = (index + 1).takeIf { it <= MAX_NUMBERED_FAVORITES })
         })
         emptyFavorites.visibility = if (arranged.favorites.isEmpty()) View.VISIBLE else View.GONE
-        favoritesLabel.text = if (movingKey != null) "Favorites  ·  Left / right to move, OK to finish" else "Favorites"
+        val movingApp = arranged.favorites.firstOrNull { it.packageName == movingKey }
+        favoritesLabel.text = movingApp?.let { twoTone("Favorites", "Moving \u201C${it.label}\u201D", R.color.accent) } ?: "Favorites"
 
         fillGrid(appsGrid, arranged.others.map(::appTile) + systemTiles())
+        applyMoveDimming(moving = movingApp != null)
 
         val restored = focusedKey?.let { key ->
             allTiles().firstOrNull { tileKey(it) == key }
@@ -240,7 +251,7 @@ class MainActivity : Activity() {
         }
         date = label(R.dimen.type_date, R.color.text_secondary)
         clock = label(R.dimen.type_clock, R.color.text_primary, medium = true)
-        val header = LinearLayout(this).apply {
+        header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL or Gravity.END
             addView(statusChip, LinearLayout.LayoutParams(WRAP_CONTENT, dp(28)).apply { marginEnd = dp(16) })
@@ -249,7 +260,9 @@ class MainActivity : Activity() {
         }
 
         favoritesLabel = sectionLabel()
-        favoritesGrid = grid()
+        // Room for the caption under a focused banner in the last row, which would otherwise
+        // run into the "Apps" label (the design's 28 dp row gap only covers rows within a grid).
+        favoritesGrid = grid().apply { setPadding(0, 0, 0, dp(CAPTION_ROOM_DP)) }
         emptyFavorites = emptyFavoritesSlot()
         appsLabel = sectionLabel()
         appsGrid = grid()
@@ -274,8 +287,58 @@ class MainActivity : Activity() {
             clipChildren = false
             addView(content, MATCH_PARENT, WRAP_CONTENT)
         }
-        root = FrameLayout(this).apply { addView(scroll, MATCH_PARENT, MATCH_PARENT) }
+        moveHint = moveHintBar()
+        root = FrameLayout(this).apply {
+            addView(scroll, MATCH_PARENT, MATCH_PARENT)
+            addView(moveHint, FrameLayout.LayoutParams(WRAP_CONTENT, dp(44), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+                bottomMargin = px(R.dimen.safe_y)
+            })
+        }
         return root
+    }
+
+    /** Screen 03: floating key hint while a favorite is being moved. */
+    private fun moveHintBar() = keyHint(
+        "\u25C0 \u25B6" to "Left / right to move",
+        "OK" to "finish",
+        "Back" to "cancel",
+        captionColorRes = R.color.text_primary,
+    ).apply {
+        visibility = View.GONE
+        setPadding(dp(20), 0, dp(20), 0)
+        background = roundedFill(R.color.surface_sheet, R.dimen.radius_card, R.color.stroke_hairline).apply {
+            cornerRadius = dp(22).toFloat()
+        }
+    }
+
+    /** Everything except the lifted tile drops to 40% so the move reads at a glance. */
+    private fun applyMoveDimming(moving: Boolean) {
+        val dim = if (moving) Scale.DIMMED_ALPHA else 1f
+        header.alpha = dim
+        appsLabel.alpha = dim
+        appsGrid.alpha = dim
+        tilesIn(favoritesGrid).forEach { it.alpha = if (!moving || tileKey(it) == movingKey) 1f else dim }
+        moveHint.visibility = if (moving) View.VISIBLE else View.GONE
+    }
+
+    /** Layout slot (x in row, row top), ignoring the lift/scale transforms of the moving tile. */
+    private fun slotOf(tile: View) = intArrayOf(tile.left, (tile.parent as View).top)
+
+    private fun favoriteTilePositions(): Map<String, IntArray> = tilesIn(favoritesGrid).mapNotNull { tile ->
+        tileKey(tile)?.let { key -> key to slotOf(tile) }
+    }.toMap()
+
+    /** Tiles that changed slot on the same row slide from their old x instead of jumping. */
+    private fun animateSwaps(before: Map<String, IntArray>) {
+        favoritesGrid.post {
+            tilesIn(favoritesGrid).forEach { tile ->
+                val old = tileKey(tile)?.let(before::get) ?: return@forEach
+                val now = slotOf(tile)
+                if (old[1] != now[1] || old[0] == now[0]) return@forEach
+                tile.translationX = (old[0] - now[0]).toFloat()
+                tile.animate().translationX(0f).setDuration(Motion.MOVE_MS).start()
+            }
+        }
     }
 
     private fun sectionLabel() = label(R.dimen.type_section, R.color.text_primary, medium = true)
@@ -403,6 +466,7 @@ class MainActivity : Activity() {
     }
 
     private fun startMove(pkg: String) {
+        orderBeforeMove = prefs.favorites
         movingKey = pkg
     }
 
@@ -620,6 +684,7 @@ class MainActivity : Activity() {
 
     private companion object {
         const val APP_ICON_DP = 40
+        const val CAPTION_ROOM_DP = 20
         const val UTILITY_ICON_DP = 28
         const val DATE_SKELETON = "EEEdMMM"
 

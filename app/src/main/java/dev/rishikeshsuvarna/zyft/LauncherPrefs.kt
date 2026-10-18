@@ -44,6 +44,11 @@ class LauncherPrefs(context: Context) {
         prefs.edit().putString(KEY_FAVORITES, updated.joinToString(SEPARATOR)).apply()
     }
 
+    /** Restores a saved order, e.g. when move mode is cancelled. */
+    fun setFavorites(order: List<String>) {
+        prefs.edit().putString(KEY_FAVORITES, order.joinToString(SEPARATOR)).apply()
+    }
+
     fun hide(pkg: String) {
         // getStringSet's returned set must not be mutated in place, hence the copy.
         prefs.edit().putStringSet(KEY_HIDDEN, hidden + pkg).apply()

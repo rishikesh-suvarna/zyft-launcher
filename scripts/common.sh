@@ -2,9 +2,11 @@
 set -euo pipefail
 
 readonly ADB_PORT=5555
+readonly CONNECT_TIMEOUT_S=30
 readonly SELF_PKG="dev.rishi.tvlauncher"
 readonly SELF_HOME="$SELF_PKG/.MainActivity"
-readonly APK="app/build/outputs/apk/release/app-release.apk"
+readonly APK="${APK:-app/build/outputs/apk/release/app-release.apk}"
+readonly PROFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../profiles" && pwd)"
 
 # Stock home apps that grab the Home button. Disabling (not uninstalling) is reversible.
 readonly STOCK_LAUNCHERS=(
@@ -12,6 +14,7 @@ readonly STOCK_LAUNCHERS=(
   com.google.android.tungsten.setupwraith   # Google TV fallback home, re-takes Home if left enabled
   com.google.android.tvlauncher             # Android TV home
   com.google.android.leanbacklauncher       # Legacy Android TV home
+  com.mitv.tvhome                           # Xiaomi PatchWall
 )
 
 die() { echo "error: $*" >&2; exit 1; }
@@ -28,11 +31,22 @@ connect_tv() {
     export ANDROID_SERIAL="$ip:$ADB_PORT"
     adb connect "$ANDROID_SERIAL" >/dev/null
   fi
-  # First connection pops an "Allow USB debugging?" prompt on the TV.
-  echo "Waiting for TV (accept the debugging prompt on screen if shown)..."
-  adb wait-for-device
-  [[ "$(adb get-state)" == "device" ]] || die "TV not authorised; accept the prompt and retry"
+  # First connection pops an "Allow USB debugging?" prompt on the TV; give the user time to accept it.
+  echo "Waiting for $ANDROID_SERIAL (accept the debugging prompt on the TV if shown)..."
+  local state="" waited=0
+  while (( waited < CONNECT_TIMEOUT_S )); do
+    state="$(adb get-state 2>/dev/null || true)"
+    [[ "$state" == "device" ]] && return 0
+    sleep 1; waited=$((waited + 1))
+  done
+  case "$state" in
+    unauthorized) die "TV is not authorised: accept the debugging prompt on screen and retry" ;;
+    *) die "can't reach $ANDROID_SERIAL: is the TV on, on the same network, with USB debugging enabled?" ;;
+  esac
 }
+
+# Lowercased brand, e.g. "tcl", "sony", "xiaomi"; picks profiles/<vendor>.txt.
+detect_vendor() { adb shell getprop ro.product.manufacturer | tr -d '\r' | tr '[:upper:]' '[:lower:]'; }
 
 is_installed() { adb shell pm path "$1" 2>/dev/null | grep -q '^package:'; }
 

@@ -1,6 +1,7 @@
-# One package per line; anything after the name is ignored. Disabled with
+# Google packages found on most Android TV / Google TV devices, any brand.
+# One package per line; text after the name is a description. Disabled with
 # `pm disable-user`, so `make restore` brings everything back.
-# Deliberately conservative: nothing here is needed to watch Netflix/Prime/YouTube/Apple TV.
+# Rule for this list: nothing here is needed to play Netflix/Prime/YouTube/etc.
 
 com.google.android.tvrecommendations                 Home screen recommendation feeds
 com.google.android.leanbacklauncher.recommendations  Legacy recommendations
@@ -8,6 +9,4 @@ com.google.android.apps.tv.dreamx                    Ambient mode screensaver (f
 com.google.android.videos                            Google TV / Play Movies
 com.google.android.play.games                        Play Games
 com.google.android.youtube.tvmusic                   YouTube Music
-com.google.android.apps.mediashell                   Google Cast receiver UI (remove line if you cast from phone)
-
-# TCL vendor apps: run `make scan TV=<ip>` and add the ones you don't use below.
+com.google.android.apps.mediashell                   Chromecast receiver (delete this line if you cast from your phone)

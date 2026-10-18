@@ -25,6 +25,8 @@
     <color name="warning_surface">#FF3A2A0C</color>
     <color name="warning_text">#FFFFC46B</color>
     <color name="warning_stroke">#73FFB547</color>
+    <!-- Brand (design/Zyft Logo.dc.html) -->
+    <color name="brand_midnight">#FF0E1220</color>
     <color name="icon_utility">#FFA3A9B4</color>
     <!-- First frame before the chosen backdrop is applied: Midnight's top colour. -->
     <color name="window_background">#FF0A0D16</color>

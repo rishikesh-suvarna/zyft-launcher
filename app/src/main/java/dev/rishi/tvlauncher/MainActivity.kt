@@ -48,6 +48,8 @@ class MainActivity : Activity() {
 
     private var apps: List<AppEntry> = emptyList()
     private var visibleFavorites: List<AppEntry> = emptyList()
+    /** Package of the favorite being dragged in move mode, or null when not moving. */
+    private var movingKey: String? = null
     /** Bumped on every load so a slow, stale load can't overwrite a newer one. */
     private var loadGeneration = 0
 
@@ -91,6 +93,12 @@ class MainActivity : Activity() {
         if (prefs.sortMode != SortMode.ALPHABETICAL && apps.isNotEmpty()) render()
     }
 
+    override fun onPause() {
+        // Leaving the screen mid-move (e.g. Home or an incoming input switch) just drops the tile.
+        if (movingKey != null) endMove()
+        super.onPause()
+    }
+
     override fun onStop() {
         unregisterReceiver(clockReceiver)
         super.onStop()
@@ -107,6 +115,27 @@ class MainActivity : Activity() {
         super.onNewIntent(intent)
         scroll.scrollTo(0, 0)
         focusFirstTile()
+    }
+
+    /**
+     * Move mode needs the keys before the focused tile sees them: OK would otherwise
+     * launch the app and left/right would move focus instead of the tile.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val moving = movingKey ?: return super.dispatchKeyEvent(event)
+        val isDown = event.action == KeyEvent.ACTION_DOWN
+        when (event.keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> if (isDown) {
+                val direction = if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -1 else 1
+                val visible = visibleFavorites.map { it.packageName }.toSet()
+                prefs.moveFavorite(moving, direction) { it in visible }
+                render()
+            }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BACK ->
+                if (isDown) endMove()
+            // Up/down would leave the row mid-move; swallow everything else too.
+        }
+        return true
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
@@ -154,6 +183,7 @@ class MainActivity : Activity() {
             favoritesRow.addView(appTile(app, number))
         }
         favoritesLabel.visibility = if (arranged.favorites.isEmpty()) View.GONE else View.VISIBLE
+        favoritesLabel.text = if (movingKey != null) "Favorites  ·  Left / right to move, OK to finish" else "Favorites"
 
         val gridTiles = arranged.others.map(::appTile) + systemTiles()
         appsGrid.removeAllViews()
@@ -231,6 +261,7 @@ class MainActivity : Activity() {
         val content = app.banner?.let(::bannerView) ?: iconWithLabel(app.icon, app.label)
         val tile = tile(content, tag = app, onClick = { launch(app) }, onLongClick = { showAppMenu(app) })
         number?.let { (tile as FrameLayout).addView(numberBadge(it)) }
+        if (app.packageName == movingKey) tile.setBackgroundResource(R.drawable.tile_moving)
         return tile
     }
 
@@ -329,8 +360,7 @@ class MainActivity : Activity() {
         val isFavorite = prefs.isFavorite(app.packageName)
         val actions = buildList<Pair<String, () -> Unit>> {
             if (isFavorite) {
-                add("Move left" to { prefs.moveFavorite(app.packageName, -1) })
-                add("Move right" to { prefs.moveFavorite(app.packageName, +1) })
+                if (visibleFavorites.size > 1) add("Move" to { movingKey = app.packageName })
                 add("Remove from favorites" to { prefs.toggleFavorite(app.packageName) })
             } else {
                 add("Add to favorites" to { prefs.toggleFavorite(app.packageName) })
@@ -347,6 +377,11 @@ class MainActivity : Activity() {
                 render()
             }
             .show()
+    }
+
+    private fun endMove() {
+        movingKey = null
+        render()
     }
 
     private fun showCustomizeMenu() {

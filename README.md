@@ -16,7 +16,7 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 - Number keys 1-9 on the remote open your first nine favorites
 - Favorites row (Netflix, Prime Video, YouTube, Apple TV and JioHotstar are pinned by default when installed)
 - All apps grid, sorted A-Z, by most used or by recently used
-- Pin, reorder, hide apps, or jump to their App info
+- Pin, hide, or jump to an app's App info; reorder favorites with a pick-up-and-move mode
 - Inputs tile for HDMI / AV sources
 - Gradient backgrounds (no wallpaper images, so no memory cost)
 - Clock
@@ -101,6 +101,7 @@ Re-enables exactly what `install` and `debloat` disabled, resets animation speed
 | D-pad + OK | Move and open |
 | 1 - 9 | Open favorite 1 - 9 (shown as a badge on each tile) |
 | Long-press OK, or Menu | App options: favorite, move, hide, app info |
+| In move mode | Left / right moves the tile, OK or Back drops it |
 | Home | Back to the top of the launcher |
 | Back | Does nothing on the home screen (by design) |
 | **Customize** tile | Sort order, background, show hidden apps |

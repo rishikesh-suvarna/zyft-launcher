@@ -7,6 +7,7 @@
     <color name="text_primary">#FFF2F3F5</color>
     <color name="text_secondary">#FF9AA0AA</color>
     <color name="focus">#FFFFFFFF</color>
+    <color name="moving">#FFFFB300</color>
 
     <dimen name="tile_width">168dp</dimen>
     <dimen name="tile_height">94dp</dimen>

@@ -13,7 +13,7 @@ Guiding rule: every feature must keep the launcher small, permission-free and fa
 ## Phase 2: Remote-first UX
 
 - [x] **Number keys:** keys 1-9 on the remote open favorites 1-9 directly
-- [ ] **Move mode:** reorder favorites by pressing OK, then left/right, then OK, instead of one step per menu
+- [x] **Move mode:** reorder favorites by pressing OK, then left/right, then OK, instead of one step per menu
 - [ ] **Status header:** date next to the clock, plus a no-network warning
 
 ## Phase 3: Nice to have (opt-in)

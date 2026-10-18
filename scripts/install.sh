@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs Lite Launcher on the TV and makes it the only home app.
+# Installs Zyft Launcher on the TV and makes it the only home app.
 source "$(dirname "$0")/common.sh"
 
 connect_tv "${1:-}"
@@ -10,7 +10,7 @@ echo "Installing $APK..."
 if ! output="$(adb install -r "$APK" 2>&1)"; then
   echo "$output"
   [[ "$output" == *INSTALL_FAILED_UPDATE_INCOMPATIBLE* ]] || die "install failed"
-  echo "The installed Lite Launcher is signed with a different key, so it can't be updated in place."
+  echo "The installed Zyft Launcher is signed with a different key, so it can't be updated in place."
   confirm "Uninstall it and install this one? Launcher settings (favorites, hidden apps, sort) will reset." \
     || die "aborted; nothing changed"
   adb uninstall "$SELF_PKG" >/dev/null
@@ -18,6 +18,14 @@ if ! output="$(adb install -r "$APK" 2>&1)"; then
 else
   echo "$output"
 fi
+
+for legacy in "${LEGACY_PKGS[@]}"; do
+  is_installed "$legacy" || continue
+  echo "Found the old build of this launcher ($legacy); it would compete for the Home button."
+  if confirm "Uninstall $legacy? Its settings don't carry over to the new package."; then
+    adb uninstall "$legacy" >/dev/null && echo "removed $legacy"
+  fi
+done
 
 echo "Current home candidates:"
 adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME | grep / || true

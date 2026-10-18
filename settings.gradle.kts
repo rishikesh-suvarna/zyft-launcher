@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "tv-launcher"
+rootProject.name = "zyft-launcher"
 include(":app")

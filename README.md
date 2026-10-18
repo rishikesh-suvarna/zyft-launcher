@@ -1,10 +1,10 @@
-# Lite Launcher
+# Zyft Launcher
 
 A tiny, fast, ad-free home screen for Android TV and Google TV.
 
-Stock TV launchers are heavy: recommendation feeds, promoted rows, background services and ads, all running on hardware with 1 to 2 GB of RAM. Lite Launcher replaces it with a plain grid of the apps you actually use.
+Stock TV launchers are heavy: recommendation feeds, promoted rows, background services and ads, all running on hardware with 1 to 2 GB of RAM. Zyft Launcher replaces it with a plain grid of the apps you actually use.
 
-![Lite Launcher home screen](docs/screenshot.png)
+![Zyft Launcher home screen](docs/screenshot.png)
 
 - **Small and fast:** about 50 KB, no libraries, opens in roughly 100 ms.
 - **No ads, no feeds, no tracking:** the app has **no internet access**. Its only permission is reading network state, to warn you when the TV is offline.
@@ -49,7 +49,7 @@ You need a computer with [`adb`](https://developer.android.com/tools/releases/pl
 
 ### 2. Get the APK
 
-Download the latest `lite-launcher-*.apk` from [Releases](../../releases), **or** build it yourself (see [Development](#development)).
+Download the latest `zyft-launcher-*.apk` from [Releases](../../releases), **or** build it yourself (see [Development](#development)).
 
 <details>
 <summary>Verify the download (optional)</summary>
@@ -57,7 +57,7 @@ Download the latest `lite-launcher-*.apk` from [Releases](../../releases), **or*
 Every release is signed with the same key. Check it with `apksigner` from the Android build tools:
 
 ```sh
-apksigner verify --print-certs lite-launcher-1.0.0.apk | grep SHA-256
+apksigner verify --print-certs zyft-launcher-1.0.0.apk | grep SHA-256
 # Signer #1 certificate SHA-256 digest: 66a521d615754c29f4dbee76c0c770a6aa4b37bc740236e5bd8503307d550eea
 ```
 
@@ -69,7 +69,7 @@ If the digest differs, don't install it. A build you made yourself is signed wit
 
 ```sh
 git clone <this repo> && cd tv-launcher
-make install TV=192.168.1.50 APK=~/Downloads/lite-launcher-1.0.0.apk
+make install TV=192.168.1.50 APK=~/Downloads/zyft-launcher-1.0.0.apk
 ```
 
 The first time, the TV shows **"Allow USB debugging?"**. Tick *Always allow* and press OK. The script installs the app, asks before disabling the stock launcher, and opens the new home screen. Press **Home** on the remote to check.
@@ -79,7 +79,7 @@ The first time, the TV shows **"Allow USB debugging?"**. Tick *Always allow* and
 
 ```sh
 adb connect 192.168.1.50:5555
-adb install -r lite-launcher.apk
+adb install -r zyft-launcher.apk
 # Find the stock home app(s):
 adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
 # Disable it, e.g. Android TV / Google TV:
@@ -107,7 +107,7 @@ Debloat uses [`profiles/android-tv.txt`](profiles/android-tv.txt) plus `profiles
 make restore TV=192.168.1.50
 ```
 
-Re-enables exactly what `install` and `debloat` disabled, resets animation speed, and offers to uninstall Lite Launcher. The log lives in `.tv-state/<tv-ip>.disabled`, so run restore from the same machine and keep the TV on the same IP (or rename the file).
+Re-enables exactly what `install` and `debloat` disabled, resets animation speed, and offers to uninstall Zyft Launcher. The log lives in `.tv-state/<tv-ip>.disabled`, so run restore from the same machine and keep the TV on the same IP (or rename the file).
 
 ## Using it
 

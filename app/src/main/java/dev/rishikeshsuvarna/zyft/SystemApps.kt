@@ -1,4 +1,4 @@
-package dev.rishi.tvlauncher
+package dev.rishikeshsuvarna.zyft
 
 /**
  * Vendor setup, service and promo tools that register a launcher icon but don't belong on a

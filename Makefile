@@ -1,5 +1,5 @@
 # Usage: make install TV=192.168.1.50
-#        make install TV=192.168.1.50 APK=~/Downloads/lite-launcher-1.0.0.apk   (no build needed)
+#        make install TV=192.168.1.50 APK=~/Downloads/zyft-launcher-1.0.0.apk   (no build needed)
 TV ?=
 APK ?=
 

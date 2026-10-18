@@ -1,4 +1,4 @@
-package dev.rishi.tvlauncher
+package dev.rishikeshsuvarna.zyft
 
 /**
  * Moves [item] one visible slot in [direction] (-1 left, +1 right).

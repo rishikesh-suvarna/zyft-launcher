@@ -27,8 +27,8 @@ If the stock launcher has a package name we don't know yet, add it to `STOCK_LAU
 - Everything must work with a D-pad: no touch-only or pointer-only UI.
 - Check cold start before and after a UI change:
   ```sh
-  adb logcat -c && adb shell am force-stop dev.rishi.tvlauncher && adb shell input keyevent KEYCODE_HOME
-  adb logcat -d | grep "Displayed dev.rishi.tvlauncher"
+  adb logcat -c && adb shell am force-stop dev.rishikeshsuvarna.zyft && adb shell input keyevent KEYCODE_HOME
+  adb logcat -d | grep "Displayed dev.rishikeshsuvarna.zyft"
   ```
 - Run `make check` before opening a PR.
 

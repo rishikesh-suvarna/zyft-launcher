@@ -1,4 +1,4 @@
-package dev.rishi.tvlauncher
+package dev.rishikeshsuvarna.zyft
 
 enum class SortMode(val title: String) {
     ALPHABETICAL("A-Z"),

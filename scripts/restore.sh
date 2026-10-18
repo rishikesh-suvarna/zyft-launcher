@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Re-enables exactly what install.sh / debloat.sh disabled, then removes Lite Launcher.
+# Re-enables exactly what install.sh / debloat.sh disabled, then removes Zyft Launcher.
 source "$(dirname "$0")/common.sh"
 
 connect_tv "${1:-}"
@@ -26,7 +26,9 @@ if [[ -f "$file.anim" ]]; then
   echo "animation speed reset"
 fi
 
-if confirm "Uninstall Lite Launcher too?"; then
-  adb uninstall "$SELF_PKG"
+if confirm "Uninstall Zyft Launcher too?"; then
+  for pkg in "$SELF_PKG" "${LEGACY_PKGS[@]}"; do
+    is_installed "$pkg" && adb uninstall "$pkg" >/dev/null && echo "uninstalled $pkg"
+  done
 fi
 adb shell am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null

@@ -68,7 +68,7 @@ If the digest differs, don't install it. A build you made yourself is signed wit
 ### 3. Install and make it the home screen
 
 ```sh
-git clone <this repo> && cd tv-launcher
+git clone https://github.com/rishikesh-suvarna/zyft-launcher.git && cd zyft-launcher
 make install TV=192.168.1.50 APK=~/Downloads/zyft-launcher-1.0.0.apk
 ```
 

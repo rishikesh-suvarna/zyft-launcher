@@ -90,22 +90,40 @@ class LauncherPrefs(context: Context) {
         lastLaunchedAt = prefs.getLong(KEY_LAST_LAUNCHED_PREFIX + pkg, 0),
     )
 
-    /** Every stored setting, for [encodeSettings]. */
-    fun snapshot(): Map<String, Any?> = prefs.all
+    /** Package opened on the first launcher start of each boot, or null. See [shouldAutoLaunch]. */
+    var autoLaunch: String?
+        get() = prefs.getString(KEY_AUTO_LAUNCH, null)
+        set(value) = prefs.edit().putString(KEY_AUTO_LAUNCH, value).apply()
 
-    /** Replaces all settings with a backup; synchronous so a restart right after sees them. */
-    fun restore(entries: Map<String, Any>): Boolean {
+    /** Boot count that auto-launch already ran (or was set up) in. */
+    var autoLaunchHandledBoot: Int?
+        get() = if (prefs.contains(KEY_AUTO_LAUNCH_BOOT)) prefs.getInt(KEY_AUTO_LAUNCH_BOOT, 0) else null
+        set(value) = prefs.edit().apply {
+            if (value == null) remove(KEY_AUTO_LAUNCH_BOOT) else putInt(KEY_AUTO_LAUNCH_BOOT, value)
+        }.apply()
+
+    /** Every stored setting worth moving to another TV, for [encodeSettings]. */
+    fun snapshot(): Map<String, Any?> = prefs.all - DEVICE_LOCAL_KEYS
+
+    /**
+     * Replaces all settings with a backup; synchronous so a restart right after sees them.
+     * Device-local state stays: another TV's boot count means nothing here. [bootCount] marks
+     * this boot as handled, so the launcher restart that follows doesn't open the startup app.
+     */
+    fun restore(entries: Map<String, Any>, bootCount: Int?): Boolean {
         val edit = prefs.edit().clear()
-        entries.forEach { (key, value) ->
+        val local = prefs.all.filterKeys { it in DEVICE_LOCAL_KEYS }
+        (entries - DEVICE_LOCAL_KEYS + local).forEach { (key, value) ->
             when (value) {
                 is String -> edit.putString(key, value)
                 is Boolean -> edit.putBoolean(key, value)
                 is Int -> edit.putInt(key, value)
                 is Long -> edit.putLong(key, value)
                 is Set<*> -> edit.putStringSet(key, value.map { it as String }.toSet())
-                else -> throw IllegalArgumentException("unsupported value for $key")
+                else -> throw IllegalArgumentException("unsupported value for $key: $value")
             }
         }
+        bootCount?.let { edit.putInt(KEY_AUTO_LAUNCH_BOOT, it) }
         return edit.commit()
     }
 
@@ -125,6 +143,9 @@ class LauncherPrefs(context: Context) {
         const val KEY_BACKDROP = "backdrop"
         const val KEY_LAUNCHES_PREFIX = "launches."
         const val KEY_LAST_LAUNCHED_PREFIX = "last_launched."
+        const val KEY_AUTO_LAUNCH = "auto_launch"
+        const val KEY_AUTO_LAUNCH_BOOT = "auto_launch_boot"
+        val DEVICE_LOCAL_KEYS = setOf(KEY_AUTO_LAUNCH_BOOT)
         // Package names never contain commas, so this is a safe delimiter.
         const val SEPARATOR = ","
 

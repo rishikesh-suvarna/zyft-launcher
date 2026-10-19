@@ -24,7 +24,7 @@ class SettingsBridge : BroadcastReceiver() {
                 ACTION_IMPORT -> {
                     val data = requireNotNull(intent.getStringExtra(EXTRA_DATA)) { "missing --es $EXTRA_DATA" }
                     val settings = decodeSettings(String(Base64.decode(data, Base64.DEFAULT)))
-                    check(prefs.restore(settings)) { "could not save settings" }
+                    check(prefs.restore(settings, currentBootCount(context.contentResolver))) { "could not save settings" }
                     "restored ${settings.size} settings"
                 }
                 else -> throw IllegalArgumentException("unknown action ${intent.action}")

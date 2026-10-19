@@ -30,7 +30,8 @@ move mode with cancel, row-snapped scrolling with a sticky header, first-run car
 - [ ] **Photo background:** pick an image, downscaled to screen size so it costs at most about 4 MB
 - [ ] **App lock:** PIN on selected apps (kids)
 - [x] **Backup / restore launcher settings** via adb, for moving to a new TV (`make backup`, `make restore-backup`)
-- [ ] **Auto-launch on boot:** open a chosen app at startup (for example a set-top box input)
+- [x] **Auto-launch on boot:** open a chosen app at startup (app options > Open at startup)
+- [ ] **Auto-switch to an input on boot** (for example a set-top box on HDMI)
 - [ ] **Voice search tile,** when an assistant is installed
 - [ ] More brand profiles: Sony, Philips, Xiaomi, Hisense (Android), Nvidia Shield, Chromecast with Google TV
 

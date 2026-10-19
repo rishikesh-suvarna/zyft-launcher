@@ -102,6 +102,15 @@ make debloat TV=192.168.1.50   # disables the packages in your brand's profile, 
 
 Debloat uses [`profiles/android-tv.txt`](profiles/android-tv.txt) plus `profiles/<brand>.txt` when one exists for your TV (detected automatically). Packages are **disabled, never uninstalled**, and every change is logged.
 
+### Back up and restore settings
+
+```sh
+make backup TV=192.168.1.50                                   # saves backups/<tv-ip>-<timestamp>.zyft
+make restore-backup TV=192.168.1.51 FILE=backups/....zyft     # e.g. onto a new TV, after make install
+```
+
+Covers favorites and their order, hidden apps, sort, background and usage counts. The file is plain text (one `type<TAB>key<TAB>value` line per setting), so you can edit it before restoring; a file with any bad line is rejected as a whole. Only the adb shell can read or write settings: the launcher's bridge requires the `DUMP` permission, which apps can't get.
+
 ### Undo everything
 
 ```sh
@@ -142,6 +151,7 @@ make ci-local               # run the real GitHub Actions job in Docker via act 
 make emulator               # boot an Android TV AVD named "tcl_tv"
 make fonts SRC=... LICENSE=...  # rebuild the Google Sans subsets + banner wordmark (needs fonttools)
 make install TV=emulator-5554
+make backup TV=192.168.1.50  # launcher settings to a file; make restore-backup puts them back
 ```
 
 ```

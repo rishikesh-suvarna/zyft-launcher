@@ -90,6 +90,25 @@ class LauncherPrefs(context: Context) {
         lastLaunchedAt = prefs.getLong(KEY_LAST_LAUNCHED_PREFIX + pkg, 0),
     )
 
+    /** Every stored setting, for [encodeSettings]. */
+    fun snapshot(): Map<String, Any?> = prefs.all
+
+    /** Replaces all settings with a backup; synchronous so a restart right after sees them. */
+    fun restore(entries: Map<String, Any>): Boolean {
+        val edit = prefs.edit().clear()
+        entries.forEach { (key, value) ->
+            when (value) {
+                is String -> edit.putString(key, value)
+                is Boolean -> edit.putBoolean(key, value)
+                is Int -> edit.putInt(key, value)
+                is Long -> edit.putLong(key, value)
+                is Set<*> -> edit.putStringSet(key, value.map { it as String }.toSet())
+                else -> throw IllegalArgumentException("unsupported value for $key")
+            }
+        }
+        return edit.commit()
+    }
+
     /** A renamed or removed enum constant must not crash the home screen. */
     private inline fun <reified E : Enum<E>> enumOrDefault(name: String?, default: E): E =
         enumValues<E>().firstOrNull { it.name == name } ?: default

@@ -10,7 +10,7 @@ Guiding rule: every feature must keep the launcher small, offline (no internet p
 - [x] Install from a prebuilt APK without a JDK or SDK
 - [x] README, CONTRIBUTING, LICENSE
 
-## Phase 2: Remote-first UX
+## Phase 2: Remote-first UX (done)
 
 - [x] **Number keys:** keys 1-9 on the remote open favorites 1-9 directly
 - [x] **Move mode:** reorder favorites by pressing OK, then left/right, then OK, instead of one step per menu
@@ -29,7 +29,7 @@ move mode with cancel, row-snapped scrolling with a sticky header, first-run car
 
 - [ ] **Photo background:** pick an image, downscaled to screen size so it costs at most about 4 MB
 - [ ] **App lock:** PIN on selected apps (kids)
-- [ ] **Backup / restore launcher settings** via adb, for moving to a new TV
+- [x] **Backup / restore launcher settings** via adb, for moving to a new TV (`make backup`, `make restore-backup`)
 - [ ] **Auto-launch on boot:** open a chosen app at startup (for example a set-top box input)
 - [ ] **Voice search tile,** when an assistant is installed
 - [ ] More brand profiles: Sony, Philips, Xiaomi, Hisense (Android), Nvidia Shield, Chromecast with Google TV

@@ -1,12 +1,21 @@
-# Zyft Launcher
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+    <img src="docs/logo-light.svg" alt="Zyft" height="48">
+  </picture>
+</h1>
 
-A tiny, fast, ad-free home screen for Android TV and Google TV.
+**Zyft Launcher:** a tiny, fast, ad-free home screen for Android TV and Google TV.
 
 Stock TV launchers are heavy: recommendation feeds, promoted rows, background services and ads, all running on hardware with 1 to 2 GB of RAM. Zyft Launcher replaces it with a plain grid of the apps you actually use.
 
-![Zyft Launcher home screen](docs/screenshot.png)
+![Zyft Launcher home screen with Netflix, Prime Video, YouTube, Apple TV and JioHotstar as favorites](docs/screenshot.png)
 
-- **Small and fast:** about 50 KB, no libraries, opens in roughly 100 ms.
+| App options | Customize, with live background preview | Move mode |
+| --- | --- | --- |
+| ![App options side sheet](docs/app-options.png) | ![Customize sheet previewing the Sunset background](docs/customize.png) | ![Moving Netflix to the second slot](docs/move-mode.png) |
+
+- **Small and fast:** about 140 KB, no libraries. App tiles are cached pre-rendered, so the home screen is filled in about 0.65 s on a TCL 32ES568 (1.4 GB RAM).
 - **No ads, no feeds, no tracking:** the app has **no internet access**. Its only permission is reading network state, to warn you when the TV is offline.
 - **Built for the remote:** D-pad navigation, long-press menus, nothing that needs a pointer.
 - **Fully reversible:** one command puts your TV back exactly as it was.
@@ -22,6 +31,9 @@ Stock TV launchers are heavy: recommendation feeds, promoted rows, background se
 - Six gradient backgrounds, previewed live on the real home screen before you apply (no wallpaper images, so no memory cost)
 - Clock and date, plus an amber "No network" / "Wi-Fi needs sign-in" chip
 - A focus ring readable on any app banner (lime ring with a dark gap), row-by-row scrolling with a sticky header
+- Open one app automatically each time the TV boots
+- Back up your settings to a file and restore them onto another TV
+- Google Sans throughout, with the Zyft mark in the header
 - Optional debloat: disables the stock launcher's recommendation services and vendor bloat, per TV brand
 
 See [ROADMAP.md](ROADMAP.md) for what's coming next.
@@ -152,6 +164,7 @@ make check                  # everything CI runs: shellcheck, tests, lint, build
 make ci-local               # run the real GitHub Actions job in Docker via act (slow on Apple Silicon)
 make emulator               # boot an Android TV AVD named "tcl_tv"
 make fonts SRC=... LICENSE=...  # rebuild the Google Sans subsets + banner wordmark (needs fonttools)
+python3 scripts/fonts/readme_logos.py  # regenerate docs/logo-*.svg from the header logo
 make install TV=emulator-5554
 make backup TV=192.168.1.50  # launcher settings to a file; make restore-backup puts them back
 ```

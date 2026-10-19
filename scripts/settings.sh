@@ -8,18 +8,26 @@ source "$(dirname "$0")/common.sh"
 readonly RECEIVER="$SELF_PKG/.SettingsBridge"
 readonly ACTION_PREFIX="$SELF_PKG"
 readonly RESULT_OK=-1  # Activity.RESULT_OK
+readonly CALL_ATTEMPTS=3
+readonly CALL_RETRY_DELAY_S=2
 BACKUP_DIR="$(cd "$(dirname "$0")/.." && pwd)/backups"
 readonly BACKUP_DIR
 
 # Sends an ordered broadcast to the launcher and prints its result data; fails on an error result.
 # `am broadcast` reports: Broadcast completed: result=-1, data="..."
+# No data at all means the receiver never ran: the system dropped the broadcast because the
+# launcher process was restarting (seen on TCL right after boot), so that case is retried.
 call_launcher() {
-  local out code data
-  out="$(adb shell am broadcast -n "$RECEIVER" -a "$ACTION_PREFIX.$1" "${@:2}" | tr -d '\r')"
-  code="$(sed -n 's/.*Broadcast completed: result=\(-\{0,1\}[0-9]*\).*/\1/p' <<<"$out")"
-  data="$(sed -n 's/.*, data="\(.*\)".*/\1/p' <<<"$out")"
-  [[ "$code" == "$RESULT_OK" ]] || die "launcher refused: ${data:-$out}"
-  printf '%s' "$data"
+  local out code data attempt
+  for ((attempt = 1; attempt <= CALL_ATTEMPTS; attempt++)); do
+    out="$(adb shell am broadcast -n "$RECEIVER" -a "$ACTION_PREFIX.$1" "${@:2}" | tr -d '\r')"
+    code="$(sed -n 's/.*Broadcast completed: result=\(-\{0,1\}[0-9]*\).*/\1/p' <<<"$out")"
+    data="$(sed -n 's/.*, data="\(.*\)".*/\1/p' <<<"$out")"
+    if [[ "$code" == "$RESULT_OK" ]]; then printf '%s' "$data"; return 0; fi
+    [[ -n "$data" ]] && die "launcher refused: $data"
+    sleep "$CALL_RETRY_DELAY_S"
+  done
+  die "the launcher didn't answer after $CALL_ATTEMPTS tries; press Home on the TV and retry"
 }
 
 usage() { die "usage: $0 backup <tv-ip> [file] | restore <tv-ip> <file>"; }
@@ -34,7 +42,9 @@ case "$cmd" in
       mkdir -p "$BACKUP_DIR"
       file="$BACKUP_DIR/${ANDROID_SERIAL//:/_}-$(date +%Y%m%d-%H%M%S).zyft"
     fi
-    call_launcher EXPORT_SETTINGS | base64 -d > "$file"
+    # Capture first so a failed call leaves no empty or partial backup behind.
+    data="$(call_launcher EXPORT_SETTINGS)"
+    base64 -d <<<"$data" > "$file"
     echo "Saved $(($(wc -l < "$file") - 1)) settings to $file"
     ;;
   restore)

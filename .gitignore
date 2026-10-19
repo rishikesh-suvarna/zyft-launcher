@@ -6,3 +6,4 @@ local.properties
 .tv-state/
 .kotlin/
 .DS_Store
+backups/

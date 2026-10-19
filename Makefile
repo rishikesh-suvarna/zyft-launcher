@@ -3,7 +3,7 @@
 TV ?=
 APK ?=
 
-.PHONY: build test check ci-local install debloat scan restore emulator fonts
+.PHONY: build test check ci-local install debloat scan restore backup restore-backup emulator fonts
 
 build:
 	./gradlew assembleRelease
@@ -45,6 +45,14 @@ scan:
 
 restore:
 	scripts/restore.sh $(TV)
+
+# Launcher settings to a file and back, e.g. for a new TV: make restore-backup TV=... FILE=backups/....zyft
+FILE ?=
+backup:
+	scripts/settings.sh backup $(TV) $(FILE)
+
+restore-backup:
+	scripts/settings.sh restore $(TV) "$(FILE)"
 
 # Boots the Google TV emulator (AVD "tcl_tv"), then: make install TV=emulator-5554
 emulator:

@@ -49,5 +49,16 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- `make backup` / `make restore-backup`. DUMP: only the adb shell (and the system) can call it. -->
+        <receiver
+            android:name=".SettingsBridge"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="dev.rishikeshsuvarna.zyft.EXPORT_SETTINGS" />
+                <action android:name="dev.rishikeshsuvarna.zyft.IMPORT_SETTINGS" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -125,12 +125,14 @@ Re-enables exactly what `install` and `debloat` disabled, resets animation speed
 | --- | --- |
 | D-pad + OK | Move and open |
 | 1 - 9 | Open favorite 1 - 9 (shown as a badge on each tile) |
-| Long-press OK, or Menu | App options: favorite, move, hide / unhide, app info |
+| Long-press OK, or Menu | App options: favorite, move, hide / unhide, open at startup, app info |
 | In move mode | Left / right moves the tile, OK keeps the new spot, Back cancels |
 | Home or Back | Back to the top of the launcher |
 | In a sheet | Back (or Left) closes it |
 | **Customize** tile | Sort order, background (live preview, OK applies, Back reverts), show hidden apps |
 | **Inputs** tile | Switch to HDMI / AV |
+
+**Open at startup:** pick one app in its options and it opens each time the TV boots (Home takes you back to the launcher). It runs once per boot, using the system boot counter, so it needs no extra permission; it won't fire when the TV only wakes from standby without rebooting.
 
 ## Troubleshooting
 

@@ -143,6 +143,16 @@ class MainActivity : Activity() {
             addAction(Intent.ACTION_PACKAGE_CHANGED)
             addDataScheme("package")
         })
+        openStartupAppOnBoot()
+    }
+
+    /** See [shouldAutoLaunch]. Marked handled before launching so a crashing app can't loop. */
+    private fun openStartupAppOnBoot() {
+        val boot = currentBootCount(contentResolver)
+        val target = prefs.autoLaunch
+        if (!shouldAutoLaunch(target, boot, prefs.autoLaunchHandledBoot)) return
+        prefs.autoLaunchHandledBoot = boot
+        packageManager.launchIntentFor(target!!)?.let(::safeStart)
     }
 
     override fun onStart() {
@@ -723,11 +733,15 @@ class MainActivity : Activity() {
     private fun showAppMenu(app: AppEntry) {
         val pkg = app.packageName
         val position = visibleFavorites.indexOfFirst { it.packageName == pkg }
-        val subtitle = when {
-            prefs.isHidden(pkg) -> "Hidden"
-            position >= 0 -> "In favorites \u00B7 position ${position + 1}"
-            else -> "Not in favorites"
-        }
+        val opensAtStartup = prefs.autoLaunch == pkg
+        val subtitle = listOfNotNull(
+            when {
+                prefs.isHidden(pkg) -> "Hidden"
+                position >= 0 -> "In favorites \u00B7 position ${position + 1}"
+                else -> "Not in favorites"
+            },
+            "Opens at startup".takeIf { opensAtStartup },
+        ).joinToString(" \u00B7 ")
         val sheet = newSheet()
         fun act(text: String, block: () -> Unit) = sheet.action(text) {
             sheet.close()
@@ -742,6 +756,16 @@ class MainActivity : Activity() {
             act("Add to favorites") { prefs.toggleFavorite(pkg) }
         }
         if (prefs.isHidden(pkg)) act("Unhide") { prefs.unhide(pkg) } else act("Hide") { prefs.hide(pkg) }
+        if (opensAtStartup) {
+            act("Don't open at startup") { prefs.autoLaunch = null }
+        } else {
+            act("Open at startup") {
+                prefs.autoLaunch = pkg
+                // Takes effect from the next boot, not on the next launcher restart in this one.
+                prefs.autoLaunchHandledBoot = currentBootCount(contentResolver)
+                toast("${app.label} will open when the TV starts")
+            }
+        }
         act("App info") {
             safeStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")))
         }
